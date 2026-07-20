@@ -1,0 +1,14 @@
+{
+  "tasks": [
+    {
+      "id": "596717d3",
+      "cron": "3 17 * * 5",
+      "prompt": "Weekly status update reminder fired. Follow the cron-renewal protocol from memory FIRST:\n\n1. Run CronList to check if this weekly status job still exists and when it was created\n2. If the job is at risk of expiring (created >5 days ago), add a ⚠️ renewal notice\n3. If the job already expired, add a 🔴 expired notice\n4. Then ask the user for their work items this week (completed, in progress, risks/blockers, next week focus)\n5. Generate the weekly status update draft following the template in memory (150-250 English words, bullet points, professional tone)\n\nIf user replies \"renew\" / \"续期\" / \"yes\" to a renewal notice, recreate the cron job with: cron \"3 17 * * 5\", durable true, recurring true, same prompt. Update the cron-renewal-protocol memory with the new job ID.",
+      "createdAt": 1781183319600,
+      "recurring": true,
+      "createdBySessionId": "d4359425-2212-415c-8651-1748926fda74",
+      "createdByPid": 24523,
+      "createdByProcStart": "Thu Jun 11 12:46:08 2026"
+    }
+  ]
+}
