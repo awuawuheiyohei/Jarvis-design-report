@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  python:
+    name: Python (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Syntax check all Python files
+        run: |
+          python -m py_compile weekly_report.py
+          python -m py_compile bin/weekly_report_web.py
+          python -m py_compile bin/generate_demo.py
+          echo "✅ syntax OK"
+
+      - name: Verify subcommand --help renders
+        run: |
+          for cmd in new list view combine today summary yearly quarter recap; do
+            python weekly_report.py $cmd --help > /dev/null || {
+              echo "❌ $cmd --help failed"; exit 1;
+            }
+          done
+          echo "✅ all subcommands render --help"
+
+      - name: Smoke: today + list + web UI imports
+        run: |
+          python weekly_report.py today
+          python weekly_report.py list
+          python -c "import sys; sys.path.insert(0, 'bin'); import weekly_report_web; print('✅ web UI module imports')"
+          echo "✅ smoke tests pass"
+
+      - name: Smoke: web UI template rendering
+        run: |
+          python -c "
+          import sys
+          sys.path.insert(0, '.')
+          sys.path.insert(0, 'bin')
+          import weekly_report_web as wrw
+          wrw._PORT = 8765
+          html = wrw.tpl_index(
+              stats={'coverage': {'weeks_reported': 0, 'weeks_total': 53}, 'totals': {}},
+              recent=[],
+          )
+          assert 'Weekly Report' in html, 'index template broken'
+          html = wrw.tpl_list([])
+          assert '还没有任何周报' in html, 'list template broken'
+          html = wrw.tpl_new(2026, 30)
+          assert '<form' in html, 'new template broken'
+          print('✅ web UI templates render')
+          "
+
+  macos:
+    name: macOS shell scripts
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: bash -n all shell scripts
+        run: |
+          for f in bin/*.sh; do
+            echo "checking $f"
+            bash -n "$f" || exit 1
+          done
+          echo "✅ shell scripts OK"
+
+      - name: plutil -lint plist
+        run: |
+          plutil -lint bin/com.user.weekly-report.plist
+          echo "✅ plist valid"
+
+      - name: Verify web server starts and serves /
+        run: |
+          python -c "
+          import socket, threading, time, urllib.request
+          import sys
+          sys.path.insert(0, '.')
+          sys.path.insert(0, 'bin')
+          # start server in background
+          import weekly_report_web as wrw
+          wrw._PORT = 0  # let OS choose
+          # monkey-patch bind to free port
+          from http.server import HTTPServer
+          orig_bind = HTTPServer.server_bind
+          def pick_free(self):
+              self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+              self.socket.bind(('127.0.0.1', 0))
+              port = self.socket.getsockname()[1]
+              self.server_address = ('127.0.0.1', port)
+          HTTPServer.server_bind = pick_free
+          # Use a thread to serve forever, but stop after 2 seconds
+          from socketserver import ThreadingMixIn
+          class S(ThreadingMixIn, HTTPServer):
+              daemon_threads = True
+          s = S(('127.0.0.1', 0), wrw.Handler)
+          t = threading.Thread(target=s.serve_forever, daemon=True)
+          t.start()
+          time.sleep(0.3)
+          try:
+              resp = urllib.request.urlopen(f'http://127.0.0.1:{s.server_address[1]}/', timeout=2)
+              body = resp.read().decode('utf-8')
+              assert resp.status == 200, f'status {resp.status}'
+              assert 'Weekly Report' in body, 'home page missing brand'
+              print(f'✅ web server serves / (got {len(body)} bytes)')
+          finally:
+              s.shutdown()
+              s.server_close()
+          "

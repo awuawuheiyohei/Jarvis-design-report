@@ -1,5 +1,8 @@
 # 周报工具 (Weekly Report CLI)
 
+[![CI](https://github.com/awuawuheiyohei/Jarvis-design-report/actions/workflows/ci.yml/badge.svg)](https://github.com/awuawuheiyohei/Jarvis-design-report/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 生活 / 工作 两个分类，自动按 ISO 周归档为 Markdown 文件，方便后续搜索、合并、或发到 IM。
 
 零依赖 (Python 标准库)、按周归档、生活/工作分开、月度 + 年度汇总、AI 年度复盘、macOS 每周五自动弹通知。
@@ -260,6 +263,15 @@ wr yearly 2026              # 年度汇总, 11% 覆盖率
 - **Markdown 输出**：方便配合 `grep` / `ripgrep` 做年终搜索
 - **生活 / 工作 分文件**：避免合并时被同事看到私人部分
 - **按 ISO 周归档**：跨年周（如 W01 的周一是去年 12-29）也归属正确
+
+## 📜 License
+
+[MIT](LICENSE) — 你可以做任何事, 只要保留版权声明。
+
+## 🤝 Contributing / 📋 Changelog
+
+- 欢迎 PR — 见 [CONTRIBUTING.md](CONTRIBUTING.md)
+- 更新日志: [CHANGELOG.md](CHANGELOG.md)
 
 ## ⚠️ 已知边界
 
