@@ -1,0 +1,328 @@
+{
+  "year": 2026,
+  "generated_at": "2026-07-21T18:43:18",
+  "coverage": {
+    "weeks_reported": 4,
+    "weeks_total": 53,
+    "missing_weeks": [
+      "2026-W01",
+      "2026-W02",
+      "2026-W03",
+      "2026-W04",
+      "2026-W05",
+      "2026-W06",
+      "2026-W07",
+      "2026-W08",
+      "2026-W09",
+      "2026-W10",
+      "2026-W11",
+      "2026-W12",
+      "2026-W13",
+      "2026-W14",
+      "2026-W15",
+      "2026-W16",
+      "2026-W17",
+      "2026-W18",
+      "2026-W19",
+      "2026-W20",
+      "2026-W21",
+      "2026-W22",
+      "2026-W23",
+      "2026-W24",
+      "2026-W25",
+      "2026-W26",
+      "2026-W31",
+      "2026-W32",
+      "2026-W33",
+      "2026-W34",
+      "2026-W35",
+      "2026-W36",
+      "2026-W37",
+      "2026-W38",
+      "2026-W39",
+      "2026-W40",
+      "2026-W41",
+      "2026-W42",
+      "2026-W43",
+      "2026-W44",
+      "2026-W45",
+      "2026-W46",
+      "2026-W47",
+      "2026-W48",
+      "2026-W49",
+      "2026-W50",
+      "2026-W51",
+      "2026-W52",
+      "2026-W53"
+    ]
+  },
+  "monthly_breakdown": [
+    {
+      "month": 1,
+      "weeks_total": 4,
+      "weeks_reported": 0,
+      "work_completed": 0,
+      "life_completed": 0,
+      "next_week": 0,
+      "work_notes": 0,
+      "life_notes": 0
+    },
+    {
+      "month": 2,
+      "weeks_total": 4,
+      "weeks_reported": 0,
+      "work_completed": 0,
+      "life_completed": 0,
+      "next_week": 0,
+      "work_notes": 0,
+      "life_notes": 0
+    },
+    {
+      "month": 3,
+      "weeks_total": 5,
+      "weeks_reported": 0,
+      "work_completed": 0,
+      "life_completed": 0,
+      "next_week": 0,
+      "work_notes": 0,
+      "life_notes": 0
+    },
+    {
+      "month": 4,
+      "weeks_total": 4,
+      "weeks_reported": 0,
+      "work_completed": 0,
+      "life_completed": 0,
+      "next_week": 0,
+      "work_notes": 0,
+      "life_notes": 0
+    },
+    {
+      "month": 5,
+      "weeks_total": 4,
+      "weeks_reported": 0,
+      "work_completed": 0,
+      "life_completed": 0,
+      "next_week": 0,
+      "work_notes": 0,
+      "life_notes": 0
+    },
+    {
+      "month": 6,
+      "weeks_total": 5,
+      "weeks_reported": 1,
+      "work_completed": 4,
+      "life_completed": 2,
+      "next_week": 2,
+      "work_notes": 1,
+      "life_notes": 0
+    },
+    {
+      "month": 7,
+      "weeks_total": 4,
+      "weeks_reported": 3,
+      "work_completed": 8,
+      "life_completed": 7,
+      "next_week": 4,
+      "work_notes": 2,
+      "life_notes": 2
+    },
+    {
+      "month": 8,
+      "weeks_total": 5,
+      "weeks_reported": 0,
+      "work_completed": 0,
+      "life_completed": 0,
+      "next_week": 0,
+      "work_notes": 0,
+      "life_notes": 0
+    },
+    {
+      "month": 9,
+      "weeks_total": 4,
+      "weeks_reported": 0,
+      "work_completed": 0,
+      "life_completed": 0,
+      "next_week": 0,
+      "work_notes": 0,
+      "life_notes": 0
+    },
+    {
+      "month": 10,
+      "weeks_total": 4,
+      "weeks_reported": 0,
+      "work_completed": 0,
+      "life_completed": 0,
+      "next_week": 0,
+      "work_notes": 0,
+      "life_notes": 0
+    },
+    {
+      "month": 11,
+      "weeks_total": 5,
+      "weeks_reported": 0,
+      "work_completed": 0,
+      "life_completed": 0,
+      "next_week": 0,
+      "work_notes": 0,
+      "life_notes": 0
+    },
+    {
+      "month": 12,
+      "weeks_total": 5,
+      "weeks_reported": 0,
+      "work_completed": 0,
+      "life_completed": 0,
+      "next_week": 0,
+      "work_notes": 0,
+      "life_notes": 0
+    }
+  ],
+  "totals": {
+    "work_completed": 12,
+    "life_completed": 9,
+    "next_week": 6,
+    "work_notes": 3,
+    "life_notes": 2
+  },
+  "weeks": [
+    {
+      "year": 2026,
+      "week": 27,
+      "month": 6,
+      "work": {
+        "completed": [
+          "完成 agent 可视化原型",
+          "提交 W27 OKR 自评",
+          "review 同事 PR #321",
+          "周五 1:1 讨论下半年方向"
+        ],
+        "next_week": [
+          "agent 项目接入真实数据",
+          "把 README 整理成 draft"
+        ],
+        "notes": [
+          "原型先 mock 数据更快迭代"
+        ]
+      },
+      "life": {
+        "completed": [
+          "周末爬了香山",
+          "读完《深度工作》第 3 章"
+        ],
+        "next_week": [],
+        "notes": []
+      }
+    },
+    {
+      "year": 2026,
+      "week": 28,
+      "month": 7,
+      "work": {
+        "completed": [
+          "agent 接入了 Strava 跑步数据",
+          "整理 README + 录屏 demo",
+          "跟 PM 过了一遍 Q3 OKR"
+        ],
+        "next_week": [
+          "补单元测试",
+          "写一份上手教程"
+        ],
+        "notes": [
+          "用 demo 录屏讲故事 > 长篇文档"
+        ]
+      },
+      "life": {
+        "completed": [
+          "周三去看了电影《长安三万里》",
+          "完成了 7km 长距离跑"
+        ],
+        "next_week": [],
+        "notes": [
+          "晚上 11 点后不再刷短视频"
+        ]
+      }
+    },
+    {
+      "year": 2026,
+      "week": 29,
+      "month": 7,
+      "work": {
+        "completed": [
+          "补齐核心路径单元测试",
+          "上线周报工具 v1",
+          "跟新人 onboarding"
+        ],
+        "next_week": [
+          "总结月度复盘",
+          "准备技术分享 slides"
+        ],
+        "notes": [
+          "测试覆盖率从 30% 涨到 62%"
+        ]
+      },
+      "life": {
+        "completed": [
+          "回老家陪爸妈过周末",
+          "开始恢复晨跑"
+        ],
+        "next_week": [],
+        "notes": [
+          "睡眠时间往前挪 30 分钟"
+        ]
+      }
+    },
+    {
+      "year": 2026,
+      "week": 30,
+      "month": 7,
+      "work": {
+        "completed": [
+          "CISSP domain 2, too many incorrect answers",
+          "deployed Codex"
+        ],
+        "next_week": [],
+        "notes": []
+      },
+      "life": {
+        "completed": [
+          "take care of my wife & my daughter 77",
+          "learning to be a good father",
+          "trying to get used to the current living pace"
+        ],
+        "next_week": [],
+        "notes": []
+      }
+    }
+  ],
+  "open_plans": [
+    {
+      "from_week": 28,
+      "plan": "补单元测试"
+    },
+    {
+      "from_week": 28,
+      "plan": "写一份上手教程"
+    },
+    {
+      "from_week": 29,
+      "plan": "总结月度复盘"
+    },
+    {
+      "from_week": 29,
+      "plan": "准备技术分享 slides"
+    }
+  ],
+  "closed_plans": [
+    {
+      "from_week": 27,
+      "plan": "agent 项目接入真实数据",
+      "completed_in": 28
+    },
+    {
+      "from_week": 27,
+      "plan": "把 README 整理成 draft",
+      "completed_in": 28
+    }
+  ]
+}

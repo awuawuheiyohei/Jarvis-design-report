@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  周报提醒：每周五 17:00 弹通知 + 开 Terminal 跑 wr new
+  加载:  launchctl load ~/Library/LaunchAgents/com.user.weekly-report.plist
+  卸载:  launchctl unload ~/Library/LaunchAgents/com.user.weekly-report.plist
+  立即试: launchctl kickstart -k gui/$(id -u)/com.user.weekly-report
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.user.weekly-report</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/jiangwenrui/Downloads/mass/For_Codex/bin/notify_weekly_report.sh</string>
+    </array>
+
+    <!-- 每周五 17:00 (launchd: Sunday=1 ... Friday=6, Saturday=7) -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>6</integer>
+        <key>Hour</key>
+        <integer>17</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/weekly-report-reminder.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/weekly-report-reminder.err</string>
+</dict>
+</plist>

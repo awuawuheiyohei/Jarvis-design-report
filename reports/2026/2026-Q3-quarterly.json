@@ -1,0 +1,214 @@
+{
+  "year": 2026,
+  "quarter": 3,
+  "months": [
+    7,
+    8,
+    9
+  ],
+  "generated_at": "2026-07-26T11:49:40",
+  "coverage": {
+    "weeks_reported": 4,
+    "weeks_total": 13,
+    "missing_weeks": [
+      "2026-W31",
+      "2026-W32",
+      "2026-W33",
+      "2026-W34",
+      "2026-W35",
+      "2026-W36",
+      "2026-W37",
+      "2026-W38",
+      "2026-W39",
+      "2026-W40"
+    ]
+  },
+  "monthly_breakdown": [
+    {
+      "month": 7,
+      "weeks_total": 4,
+      "weeks_reported": 3,
+      "work_completed": 10,
+      "life_completed": 9,
+      "next_week": 4,
+      "work_notes": 2,
+      "life_notes": 2
+    },
+    {
+      "month": 8,
+      "weeks_total": 5,
+      "weeks_reported": 0,
+      "work_completed": 0,
+      "life_completed": 0,
+      "next_week": 0,
+      "work_notes": 0,
+      "life_notes": 0
+    },
+    {
+      "month": 9,
+      "weeks_total": 4,
+      "weeks_reported": 0,
+      "work_completed": 0,
+      "life_completed": 0,
+      "next_week": 0,
+      "work_notes": 0,
+      "life_notes": 0
+    }
+  ],
+  "totals": {
+    "work_completed": 14,
+    "life_completed": 12,
+    "next_week": 6,
+    "work_notes": 3,
+    "life_notes": 3
+  },
+  "weeks": [
+    {
+      "year": 2026,
+      "week": 27,
+      "month": 6,
+      "work": {
+        "completed": [
+          "designed agent visualization prototype (延续 W26 plan ✅)",
+          "finalized Q3 OKR with manager (延续 W26 plan ✅)",
+          "onboarded 新实习生",
+          "ran security tests on production deployment"
+        ],
+        "next_week": [
+          "iterate on agent prototype",
+          "start integration with real data"
+        ],
+        "notes": [
+          "prototype over polish — 先 ship 再 polish"
+        ]
+      },
+      "life": {
+        "completed": [
+          "hiked 香山 with family",
+          "finished 《Atomic Habits》中文版",
+          "tried a new recipe (Thai green curry)"
+        ],
+        "next_week": [],
+        "notes": [
+          "Atomic Habits 里的 1% 改进确实在累积"
+        ]
+      }
+    },
+    {
+      "year": 2026,
+      "week": 28,
+      "month": 7,
+      "work": {
+        "completed": [
+          "iterated on agent prototype based on feedback (W27 plan ✅)",
+          "started integrating real data (W27 plan ✅)",
+          "reviewed intern's first PR",
+          "presented at team knowledge sharing"
+        ],
+        "next_week": [
+          "finish integration",
+          "write README + demo video"
+        ],
+        "notes": [
+          "demo video 比长篇文档更容易被同事看完"
+        ]
+      },
+      "life": {
+        "completed": [
+          "saw 长安三万里 with family",
+          "completed 7km long run",
+          "took 2 walks during work breaks"
+        ],
+        "next_week": [],
+        "notes": [
+          "晚上 11 点后不刷短视频又坚持了一周"
+        ]
+      }
+    },
+    {
+      "year": 2026,
+      "week": 29,
+      "month": 7,
+      "work": {
+        "completed": [
+          "finished integration (W28 plan ✅)",
+          "wrote README + 录了 demo (W28 plan ✅)",
+          "deployed 到 staging 环境",
+          "collected feedback from 3 beta users"
+        ],
+        "next_week": [
+          "ship to production",
+          "start v2 features planning"
+        ],
+        "notes": [
+          "用户反馈里 60% 都提到了希望能加更多 visualization 选项"
+        ]
+      },
+      "life": {
+        "completed": [
+          "周末回老家陪爸妈",
+          "开始恢复晨跑",
+          "把日记本从抽屉里又拿出来了"
+        ],
+        "next_week": [],
+        "notes": [
+          "日记本里翻到去年写的「想当好爸爸」, 有点感慨"
+        ]
+      }
+    },
+    {
+      "year": 2026,
+      "week": 30,
+      "month": 7,
+      "work": {
+        "completed": [
+          "CISSP domain 2, too many incorrect answers",
+          "deployed Codex"
+        ],
+        "next_week": [],
+        "notes": []
+      },
+      "life": {
+        "completed": [
+          "take care of my wife & my daughter 77",
+          "learning to be a good father",
+          "trying to get used to the current living pace"
+        ],
+        "next_week": [],
+        "notes": []
+      }
+    }
+  ],
+  "open_plans": [
+    {
+      "from_week": 29,
+      "plan": "ship to production"
+    },
+    {
+      "from_week": 29,
+      "plan": "start v2 features planning"
+    }
+  ],
+  "closed_plans": [
+    {
+      "from_week": 27,
+      "plan": "iterate on agent prototype",
+      "completed_in": 28
+    },
+    {
+      "from_week": 27,
+      "plan": "start integration with real data",
+      "completed_in": 28
+    },
+    {
+      "from_week": 28,
+      "plan": "finish integration",
+      "completed_in": 29
+    },
+    {
+      "from_week": 28,
+      "plan": "write README + demo video",
+      "completed_in": 29
+    }
+  ]
+}
