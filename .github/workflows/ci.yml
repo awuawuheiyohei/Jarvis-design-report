@@ -40,14 +40,14 @@ jobs:
           done
           echo "✅ all subcommands render --help"
 
-      - name: Smoke: today + list + web UI imports
+      - name: "Smoke: today + list + web UI imports"
         run: |
           python weekly_report.py today
           python weekly_report.py list
           python -c "import sys; sys.path.insert(0, 'bin'); import weekly_report_web; print('✅ web UI module imports')"
           echo "✅ smoke tests pass"
 
-      - name: Smoke: web UI template rendering
+      - name: "Smoke: web UI template rendering"
         run: |
           python -c "
           import sys
@@ -86,7 +86,7 @@ jobs:
           plutil -lint bin/com.user.weekly-report.plist
           echo "✅ plist valid"
 
-      - name: Verify web server starts and serves /
+      - name: "Verify web server starts and serves /"
         run: |
           python -c "
           import socket, threading, time, urllib.request
