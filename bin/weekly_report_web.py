@@ -177,7 +177,11 @@ def tpl_base(title: str, body: str, active: str = "", port: int = 0) -> str:
         ("yearly", f"/yearly/{date.today().year}", "📅 年度"),
     ]
     nav_html = "".join(
-        f'<a href="{url}" {"class=\"active\"" if k == active else ""}>{label}</a>'
+        '<a href="{}" {}>{}</a>'.format(
+            url,
+            'class="active"' if k == active else "",
+            label,
+        )
         for k, url, label in nav_items
     )
     return f"""<!DOCTYPE html>
