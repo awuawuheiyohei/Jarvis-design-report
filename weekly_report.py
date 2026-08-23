@@ -50,6 +50,65 @@ def fmt_date_zh(d: date) -> str:
     return f"{d.year}-{d.month:02d}-{d.day:02d}"
 
 
+# ──────────── 连续周数 (streak) ────────────
+
+
+def _week_files_exist(year: int, week: int) -> bool:
+    """给定的 ISO 周是否有任何 work/life 文件."""
+    work_p = report_path("work", year, week)
+    life_p = report_path("life", year, week)
+    return work_p.exists() or life_p.exists()
+
+
+def _prev_iso_week(year: int, week: int) -> tuple[int, int]:
+    """返回 (year, week) 的前一个 ISO 周.
+
+    跨年处理: W01 的前一周是上一年的最后一周 (W52 或 W53).
+    注意: 不能用 date(year-1, 12, 31) 找 — 它可能属于次年 W01 (例如 2025-12-31 属 2026-W01).
+    正确做法: 找 W01 的 Monday, 往前推 7 天.
+    """
+    if week > 1:
+        return year, week - 1
+    # W01 总是包含 Jan 4
+    target_mon = date(year, 1, 4)
+    _, _, dow = target_mon.isocalendar()  # dow: 1=Mon..7=Sun
+    mon_of_w01 = target_mon - timedelta(days=dow - 1)
+    # 往前推 7 天 = 前一年最后一周的 Monday
+    prev_mon = mon_of_w01 - timedelta(days=7)
+    iy, iw, _ = prev_mon.isocalendar()
+    return iy, iw
+
+
+def compute_streak(today: date | None = None) -> int:
+    """从当前周往前数, 连续有几周有数据.
+
+    规则:
+    - 从当前周开始, 跳过所有末尾的空白周 (允许"本周还没写"的情况)
+    - 一旦找到有数据的周, 一直数, 直到遇到空白就停
+    - 最多回溯 104 周 (~2 年), 防无限循环
+    - 跨年 / 跨月都正确处理
+
+    Examples:
+        - W25-W30 全填, W31 起空, 当前 W34: 返回 6
+        - 只有本周 W34 填了: 返回 1
+        - 完全没数据: 返回 0
+        - W30 填, W31 空, 当前 W34: 返回 0 (W31 是断点)
+    """
+    if today is None:
+        today = date.today()
+    cur_year, cur_week = iso_week(today)
+    streak = 0
+    found_data = False
+    for _ in range(104):
+        if _week_files_exist(cur_year, cur_week):
+            streak += 1
+            found_data = True
+        elif found_data:
+            break
+        cur_year, cur_week = _prev_iso_week(cur_year, cur_week)
+    return streak
+
+
 def week_label(year: int, week: int) -> str:
     return f"{year}-W{week:02d}"
 

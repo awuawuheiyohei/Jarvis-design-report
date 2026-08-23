@@ -160,16 +160,25 @@ def list_all_weeks() -> list[tuple[int, int]]:
 
 
 def coverage_stats() -> dict:
-    """当前年份的覆盖率 + 总条目数 (从 yearly.json 读, 没有则空)."""
+    """当前年份的覆盖率 + 总条目数 + 连续周数 (streak)."""
     today = date.today()
     year = today.year
+    streak = wr.compute_streak(today)
     json_path = wr.REPORTS_DIR / str(year) / f"{year}-yearly.json"
     if json_path.exists():
         try:
-            return {"year": year, **json.loads(json_path.read_text(encoding="utf-8"))}
+            data = json.loads(json_path.read_text(encoding="utf-8"))
+            data["year"] = year
+            data["streak"] = streak
+            return data
         except Exception:
             pass
-    return {"year": year, "coverage": {"weeks_reported": 0, "weeks_total": 53}, "totals": {}}
+    return {
+        "year": year,
+        "streak": streak,
+        "coverage": {"weeks_reported": 0, "weeks_total": 53},
+        "totals": {},
+    }
 
 
 def week_files(year: int, week: int) -> tuple[Path | None, Path | None]:
@@ -241,8 +250,14 @@ def tpl_index(stats: dict, recent: list[tuple[int, int]]) -> str:
         or '<li class="muted">还没有任何周报. <a href="/new">写第一份</a> 吧.</li>'
     )
 
+    streak = stats.get("streak", 0)
+    streak_fire = "🔥" if streak >= 3 else ""
     body = f"""
 <section class="hero">
+  <div class="hero-streak">
+    <div class="num">{streak} 周</div>
+    <div class="label">连续写周报 {streak_fire}</div>
+  </div>
   <div class="hero-week">
     <div class="label">本周</div>
     <div class="big">{wr.week_label(y, w)}</div>

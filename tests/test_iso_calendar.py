@@ -122,3 +122,50 @@ class TestWeeksInYear(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestStreak(unittest.TestCase):
+    """测试 compute_streak (连续写周报的周数)."""
+
+    def test_streak_with_real_data(self):
+        """用真实 reports/ 数据 (W25-W30 都有) → streak = 6."""
+        from datetime import date
+
+        streak = wr.compute_streak(date(2026, 7, 26))
+        self.assertEqual(streak, 6, f"expected 6, got {streak}")
+
+    def test_streak_current_week_empty(self):
+        """当前 W34 没数据, 跳过找 W25-W30 的连续段 → 6."""
+        from datetime import date
+
+        streak = wr.compute_streak(date(2026, 8, 23))
+        self.assertEqual(streak, 6)
+
+    def test_streak_no_data(self):
+        """完全没数据 → 0."""
+        import tempfile
+        from datetime import date
+
+        with tempfile.TemporaryDirectory() as tmp:
+            backup = wr.REPORTS_DIR
+            wr.REPORTS_DIR = Path(tmp)
+            try:
+                streak = wr.compute_streak(date(2026, 8, 23))
+                self.assertEqual(streak, 0)
+            finally:
+                wr.REPORTS_DIR = backup
+
+    def test_prev_iso_week_normal(self):
+        """普通情况: W30 的前一周是 W29."""
+        self.assertEqual(wr._prev_iso_week(2026, 30), (2026, 29))
+        self.assertEqual(wr._prev_iso_week(2026, 5), (2026, 4))
+
+    def test_prev_iso_week_cross_year(self):
+        """跨年: 2026-W01 的前一周是 2025 的最后一周."""
+        prev = wr._prev_iso_week(2026, 1)
+        # 2025 有 52 周, 2025-W52 是最后一周
+        self.assertEqual(prev, (2025, 52))
+
+    def test_prev_iso_week_year_start(self):
+        """W02 -> W01."""
+        self.assertEqual(wr._prev_iso_week(2026, 2), (2026, 1))

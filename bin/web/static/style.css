@@ -77,6 +77,20 @@ h3 { font-size: 1.1em; margin-top: 1.2em; color: #4b5563; }
 .hero-stats .num { font-size: 1.8em; font-weight: 700; line-height: 1.2; }
 .hero-stats .label { font-size: 0.85em; opacity: 0.85; margin-top: 4px; }
 
+/* ===== Hero: Streak ===== */
+.hero-streak {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: white;
+  padding: 16px 22px;
+  border-radius: 8px;
+  text-align: center;
+  min-width: 140px;
+  align-self: center;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.2);
+}
+.hero-streak .num { font-size: 2em; font-weight: 700; line-height: 1.2; }
+.hero-streak .label { font-size: 0.9em; opacity: 0.95; margin-top: 2px; }
+
 /* ===== Quick Grid ===== */
 .quick-grid {
   display: grid;
