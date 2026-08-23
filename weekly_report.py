@@ -294,6 +294,7 @@ def parse_section(raw: str | None) -> dict[str, list[str]]:
         return out
     # 兼容 '## ' 在文件开头的情况 (无前置换行): 用正则切
     import re as _re
+
     for chunk in _re.split(r"(?:^|\n)## ", raw)[1:]:
         header, _, body = chunk.partition("\n")
         items: list[str] = []
