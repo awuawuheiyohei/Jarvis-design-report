@@ -9,6 +9,7 @@ weekly_report.py — 生活 / 工作 分开的周报工具
 - 命令: new / list / view / combine / today
 - 零依赖，纯标准库
 """
+
 from __future__ import annotations
 
 import argparse
@@ -23,11 +24,11 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-
 REPORTS_DIR = Path(__file__).parent / "reports"
 
 
 # ---------- 时间与归档 ----------
+
 
 def iso_week(d: date) -> tuple[int, int]:
     """返回 (年, ISO 周数)。ISO 周一是一周的第一天。"""
@@ -55,6 +56,7 @@ def week_label(year: int, week: int) -> str:
 
 # ---------- 交互输入 ----------
 
+
 @dataclass
 class ReportSection:
     title: str
@@ -81,7 +83,7 @@ def prompt_section(section: ReportSection) -> None:
     target = section.items
     while True:
         try:
-            line = input(f"  [{section.title} #{len(target)+1}] ").rstrip()
+            line = input(f"  [{section.title} #{len(target) + 1}] ").rstrip()
         except EOFError:
             print()
             break
@@ -104,6 +106,7 @@ def prompt_section(section: ReportSection) -> None:
 
 
 # ---------- 文件 I/O ----------
+
 
 def report_path(category: str, year: int, week: int) -> Path:
     if category not in ("life", "work"):
@@ -156,6 +159,7 @@ def read_section(category: str, year: int, week: int) -> str | None:
 
 
 # ---------- 子命令 ----------
+
 
 def cmd_new(args: argparse.Namespace) -> int:
     today = date.today()
@@ -259,8 +263,8 @@ def cmd_today(_args: argparse.Namespace) -> int:
     return 0
 
 
-
 # ---------- 月度汇总 ----------
+
 
 def weeks_starting_in_month(year: int, month: int) -> list[tuple[int, int]]:
     """返回 (iso_year, iso_week)，包含所有「周一落在 (year, month) 内」的周。"""
@@ -282,7 +286,7 @@ def weeks_starting_in_month(year: int, month: int) -> list[tuple[int, int]]:
 
 def parse_section(raw: str | None) -> dict[str, list[str]]:
     """把 write_section 产出的 markdown 反解为 dict。"""
-    out = {"completed": [], "next_week": [], "notes": []}
+    out: dict[str, list[str]] = {"completed": [], "next_week": [], "notes": []}
     if not raw:
         return out
     for chunk in raw.split("\n## ")[1:]:
@@ -308,7 +312,9 @@ def render_summary_markdown(year: int, month: int, weeks_data: list[dict]) -> Pa
     lines.append(f"# {year} 年 {month} 月 · 月度汇总")
     lines.append("")
     lines.append(f"> 生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M')}")
-    lines.append(f"> 覆盖：{len(weeks_data)} 周 ({week_label(weeks_data[0]['year'], weeks_data[0]['week'])} ~ {week_label(weeks_data[-1]['year'], weeks_data[-1]['week'])})")
+    lines.append(
+        f"> 覆盖：{len(weeks_data)} 周 ({week_label(weeks_data[0]['year'], weeks_data[0]['week'])} ~ {week_label(weeks_data[-1]['year'], weeks_data[-1]['week'])})"
+    )
     lines.append("")
 
     lines.append("## 📅 涉及周次")
@@ -367,25 +373,27 @@ def cmd_summary(args: argparse.Namespace) -> int:
 
     weeks_data: list[dict] = []
     missing: list[str] = []
-    for (wy, ww) in weeks:
-        work_p = report_path("work", wy, ww)
-        life_p = report_path("life", wy, ww)
-        work_raw = work_p.read_text(encoding="utf-8") if work_p.exists() else None
-        life_raw = life_p.read_text(encoding="utf-8") if life_p.exists() else None
+    for wy, ww in weeks:
+        work_path = report_path("work", wy, ww)
+        life_path = report_path("life", wy, ww)
+        work_raw = work_path.read_text(encoding="utf-8") if work_path.exists() else None
+        life_raw = life_path.read_text(encoding="utf-8") if life_path.exists() else None
         if work_raw or life_raw:
             work_p = parse_section(work_raw)
             life_p = parse_section(life_raw)
             notes_combined = work_p["notes"] + life_p["notes"]
-            weeks_data.append({
-                "year": wy,
-                "week": ww,
-                "work": work_p,
-                "life": life_p,
-                "work_completed_pre": work_p["completed"],
-                "work_next_pre": work_p["next_week"],
-                "life_completed_pre": life_p["completed"],
-                "notes_pre": notes_combined,
-            })
+            weeks_data.append(
+                {
+                    "year": wy,
+                    "week": ww,
+                    "work": work_p,
+                    "life": life_p,
+                    "work_completed_pre": work_p["completed"],
+                    "work_next_pre": work_p["next_week"],
+                    "life_completed_pre": life_p["completed"],
+                    "notes_pre": notes_combined,
+                }
+            )
         else:
             missing.append(week_label(wy, ww))
 
@@ -398,6 +406,7 @@ def cmd_summary(args: argparse.Namespace) -> int:
 
     if args.format == "json":
         import json
+
         payload = {
             "year": year,
             "month": month,
@@ -419,8 +428,8 @@ def cmd_summary(args: argparse.Namespace) -> int:
     return 0
 
 
-
 # ---------- 年度汇总 ----------
+
 
 def weeks_in_year(year: int) -> list[tuple[int, int]]:
     """返回 [year-01-01, year-12-31] 范围内所有 ISO 周 (iso_year, iso_week)，去重排序。"""
@@ -481,11 +490,13 @@ def _track_plans(weeks_data: list[dict]) -> tuple[list[dict], list[dict]]:
                     break
 
             if found_in is not None:
-                closed_plans.append({
-                    "from_week": w["week"],
-                    "plan": plan,
-                    "completed_in": found_in,
-                })
+                closed_plans.append(
+                    {
+                        "from_week": w["week"],
+                        "plan": plan,
+                        "completed_in": found_in,
+                    }
+                )
             else:
                 open_plans.append({"from_week": w["week"], "plan": plan})
     return open_plans, closed_plans
@@ -493,17 +504,20 @@ def _track_plans(weeks_data: list[dict]) -> tuple[list[dict], list[dict]]:
 
 def _monthly_stats(weeks: list[tuple[int, int]], weeks_data: list[dict]) -> dict[int, dict]:
     """按月统计: { month: {weeks_total, weeks_reported, work_completed, life_completed, next_week, work_notes, life_notes} }"""
-    monthly: dict[int, dict] = {m: {
-        "weeks_total": 0,
-        "weeks_reported": 0,
-        "work_completed": 0,
-        "life_completed": 0,
-        "next_week": 0,
-        "work_notes": 0,
-        "life_notes": 0,
-    } for m in range(1, 13)}
+    monthly: dict[int, dict] = {
+        m: {
+            "weeks_total": 0,
+            "weeks_reported": 0,
+            "work_completed": 0,
+            "life_completed": 0,
+            "next_week": 0,
+            "work_notes": 0,
+            "life_notes": 0,
+        }
+        for m in range(1, 13)
+    }
     # 每周归属 = 「周一所在月」
-    for (wy, ww) in weeks:
+    for wy, ww in weeks:
         m = week_range(wy, ww)[0].month
         if m in monthly:
             monthly[m]["weeks_total"] += 1
@@ -518,8 +532,9 @@ def _monthly_stats(weeks: list[tuple[int, int]], weeks_data: list[dict]) -> dict
     return monthly
 
 
-def render_yearly_markdown(year: int, weeks_data: list[dict], missing: list[str],
-                           monthly: dict[int, dict], totals: dict) -> Path:
+def render_yearly_markdown(
+    year: int, weeks_data: list[dict], missing: list[str], monthly: dict[int, dict], totals: dict
+) -> Path:
     lines: list[str] = []
     weeks_total = sum(monthly[m]["weeks_total"] for m in monthly)
     coverage_pct = (len(weeks_data) * 100 // weeks_total) if weeks_total else 0
@@ -542,7 +557,9 @@ def render_yearly_markdown(year: int, weeks_data: list[dict], missing: list[str]
         if s["weeks_reported"] > 0:
             notes_total = s["work_notes"] + s["life_notes"]
             coverage_str = f"{s['weeks_reported']}/{s['weeks_total']}"
-            lines.append(f"| {year}-{m:02d} | {coverage_str} | {s['work_completed']} | {s['life_completed']} | {s['next_week']} | {notes_total} |")
+            lines.append(
+                f"| {year}-{m:02d} | {coverage_str} | {s['work_completed']} | {s['life_completed']} | {s['next_week']} | {notes_total} |"
+            )
     lines.append("")
 
     # 排行榜
@@ -646,7 +663,7 @@ def cmd_yearly(args: argparse.Namespace) -> int:
 
     weeks_data: list[dict] = []
     missing: list[str] = []
-    for (wy, ww) in weeks:
+    for wy, ww in weeks:
         work_p = report_path("work", wy, ww)
         life_p = report_path("life", wy, ww)
         work_raw = work_p.read_text(encoding="utf-8") if work_p.exists() else None
@@ -654,13 +671,15 @@ def cmd_yearly(args: argparse.Namespace) -> int:
         if work_raw or life_raw:
             w_work = parse_section(work_raw)
             w_life = parse_section(life_raw)
-            weeks_data.append({
-                "year": wy,
-                "week": ww,
-                "month": week_range(wy, ww)[0].month,
-                "work": w_work,
-                "life": w_life,
-            })
+            weeks_data.append(
+                {
+                    "year": wy,
+                    "week": ww,
+                    "month": week_range(wy, ww)[0].month,
+                    "work": w_work,
+                    "life": w_life,
+                }
+            )
         else:
             missing.append(week_label(wy, ww))
 
@@ -679,6 +698,7 @@ def cmd_yearly(args: argparse.Namespace) -> int:
 
     if args.format == "json":
         import json
+
         open_plans, closed_plans = _track_plans(weeks_data)
         payload = {
             "year": year,
@@ -688,9 +708,7 @@ def cmd_yearly(args: argparse.Namespace) -> int:
                 "weeks_total": sum(monthly[m]["weeks_total"] for m in monthly),
                 "missing_weeks": missing,
             },
-            "monthly_breakdown": [
-                {"month": m, **stats} for m, stats in monthly.items()
-            ],
+            "monthly_breakdown": [{"month": m, **stats} for m, stats in monthly.items()],
             "totals": totals,
             "weeks": weeks_data,
             "open_plans": open_plans,
@@ -711,8 +729,8 @@ def cmd_yearly(args: argparse.Namespace) -> int:
     return 0
 
 
-
 # ---------- 季度汇总 ----------
+
 
 def weeks_in_quarter(year: int, quarter: int) -> list[tuple[int, int]]:
     """Q1=Jan-Mar, Q2=Apr-Jun, Q3=Jul-Sep, Q4=Oct-Dec. 周一落在季度内的 ISO 周。"""
@@ -726,10 +744,15 @@ def weeks_in_quarter(year: int, quarter: int) -> list[tuple[int, int]]:
     return sorted(weeks)
 
 
-def render_quarterly_markdown(year: int, quarter: int,
-                              weeks_data: list[dict], missing: list[str],
-                              monthly: dict[int, dict], totals: dict,
-                              quarter_months_: tuple[int, int, int]) -> Path:
+def render_quarterly_markdown(
+    year: int,
+    quarter: int,
+    weeks_data: list[dict],
+    missing: list[str],
+    monthly: dict[int, dict],
+    totals: dict,
+    quarter_months_: tuple[int, int, int],
+) -> Path:
     lines: list[str] = []
     m1, m2, m3 = quarter_months_
     weeks_total = sum(monthly[m]["weeks_total"] for m in (m1, m2, m3))
@@ -753,7 +776,9 @@ def render_quarterly_markdown(year: int, quarter: int,
         if s["weeks_reported"] > 0:
             notes_total = s["work_notes"] + s["life_notes"]
             coverage_str = f"{s['weeks_reported']}/{s['weeks_total']}"
-            lines.append(f"| {year}-{m:02d} | {coverage_str} | {s['work_completed']} | {s['life_completed']} | {s['next_week']} | {notes_total} |")
+            lines.append(
+                f"| {year}-{m:02d} | {coverage_str} | {s['work_completed']} | {s['life_completed']} | {s['next_week']} | {notes_total} |"
+            )
     lines.append("")
 
     def _dump_section(heading: str, key_path: list[str], empty_msg: str) -> None:
@@ -843,7 +868,7 @@ def cmd_quarter(args: argparse.Namespace) -> int:
 
     weeks_data: list[dict] = []
     missing: list[str] = []
-    for (wy, ww) in weeks:
+    for wy, ww in weeks:
         work_p = report_path("work", wy, ww)
         life_p = report_path("life", wy, ww)
         work_raw = work_p.read_text(encoding="utf-8") if work_p.exists() else None
@@ -851,13 +876,15 @@ def cmd_quarter(args: argparse.Namespace) -> int:
         if work_raw or life_raw:
             w_work = parse_section(work_raw)
             w_life = parse_section(life_raw)
-            weeks_data.append({
-                "year": wy,
-                "week": ww,
-                "month": week_range(wy, ww)[0].month,
-                "work": w_work,
-                "life": w_life,
-            })
+            weeks_data.append(
+                {
+                    "year": wy,
+                    "week": ww,
+                    "month": week_range(wy, ww)[0].month,
+                    "work": w_work,
+                    "life": w_life,
+                }
+            )
         else:
             missing.append(week_label(wy, ww))
 
@@ -876,6 +903,7 @@ def cmd_quarter(args: argparse.Namespace) -> int:
 
     if args.format == "json":
         import json
+
         open_plans, closed_plans = _track_plans(weeks_data)
         payload = {
             "year": year,
@@ -910,10 +938,7 @@ def cmd_quarter(args: argparse.Namespace) -> int:
 
 # ---------- AI 复盘 ----------
 
-RECAP_SYSTEM_PROMPT = (
-    "你是一位温暖而克制的个人成长教练。你直接、犀利，不灌鸡汤。"
-    "用中文、第二人称「你」写作。"
-)
+RECAP_SYSTEM_PROMPT = "你是一位温暖而克制的个人成长教练。你直接、犀利，不灌鸡汤。用中文、第二人称「你」写作。"
 
 
 def _build_recap_prompt(year: int, summary_md: str) -> str:
@@ -1054,6 +1079,7 @@ def cmd_recap(args: argparse.Namespace) -> int:
 
 # ---------- CLI 入口 ----------
 
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="weekly_report",
@@ -1103,8 +1129,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_recap = sub.add_parser("recap", help="生成 AI 年度复盘 (默认打印 prompt，可用 --provider openai 自动调用)")
     p_recap.add_argument("year", type=int)
-    p_recap.add_argument("--provider", choices=["prompt", "openai"], default="prompt",
-                         help="prompt (默认) = 打印提示词; openai = 调 OpenAI API")
+    p_recap.add_argument(
+        "--provider",
+        choices=["prompt", "openai"],
+        default="prompt",
+        help="prompt (默认) = 打印提示词; openai = 调 OpenAI API",
+    )
     p_recap.add_argument("--model", default="gpt-4o-mini", help="OpenAI 模型，默认 gpt-4o-mini")
     p_recap.add_argument("--save", help="(仅 openai) 保存路径，默认 reports/YEAR/YEAR-recap.md")
     p_recap.add_argument("--refresh", action="store_true", help="先重生成 yearly.md 再做复盘")

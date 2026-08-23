@@ -9,6 +9,7 @@ weekly_report_web.py — 纯 stdlib 的 Web UI (不依赖任何第三方库)
 
 启动后浏览器打开 http://127.0.0.1:8765
 """
+
 from __future__ import annotations
 
 import argparse
@@ -18,7 +19,7 @@ import re
 import sys
 import urllib.parse
 from datetime import date
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from socketserver import ThreadingMixIn
 
@@ -27,10 +28,10 @@ STATIC_DIR = Path(__file__).resolve().parent / "web" / "static"
 
 sys.path.insert(0, str(PROJECT_DIR))
 
-import weekly_report as wr
-
+import weekly_report as wr  # noqa: E402
 
 # ──────────── 工具：Markdown → HTML (够用就行) ────────────
+
 
 def _escape_md(text: str) -> str:
     text = html.escape(text)
@@ -77,7 +78,9 @@ def md_to_html(text: str) -> str:
 
         # 表格: 检测到 |---| 分隔线
         if "|" in line and i + 1 < len(lines) and re.match(r"^\s*\|[\s\-:|]+\|\s*$", lines[i + 1]):
-            flush_list(); flush_para(); flush_table()
+            flush_list()
+            flush_para()
+            flush_table()
             table_buf.append(line)
             i += 2
             while i < len(lines) and "|" in lines[i]:
@@ -87,19 +90,24 @@ def md_to_html(text: str) -> str:
             continue
 
         if line.startswith("# "):
-            flush_list(); flush_para()
+            flush_list()
+            flush_para()
             out.append(f"<h1>{_escape_md(line[2:])}</h1>")
         elif line.startswith("## "):
-            flush_list(); flush_para()
+            flush_list()
+            flush_para()
             out.append(f"<h2>{_escape_md(line[3:])}</h2>")
         elif line.startswith("### "):
-            flush_list(); flush_para()
+            flush_list()
+            flush_para()
             out.append(f"<h3>{_escape_md(line[4:])}</h3>")
         elif line.startswith("#### "):
-            flush_list(); flush_para()
+            flush_list()
+            flush_para()
             out.append(f"<h4>{_escape_md(line[5:])}</h4>")
         elif line.startswith("> "):
-            flush_list(); flush_para()
+            flush_list()
+            flush_para()
             out.append(f"<blockquote>{_escape_md(line[2:])}</blockquote>")
         elif line.startswith("- ") or line.startswith("* "):
             flush_para()
@@ -108,10 +116,12 @@ def md_to_html(text: str) -> str:
                 in_list = True
             out.append(f"<li>{_escape_md(line[2:])}</li>")
         elif line.startswith("_(空)_"):
-            flush_list(); flush_para()
+            flush_list()
+            flush_para()
             out.append('<p class="empty">(无)</p>')
         elif line.strip() == "":
-            flush_list(); flush_para()
+            flush_list()
+            flush_para()
         else:
             flush_list()
             if not in_para:
@@ -121,15 +131,18 @@ def md_to_html(text: str) -> str:
 
         i += 1
 
-    flush_list(); flush_para(); flush_table()
+    flush_list()
+    flush_para()
+    flush_table()
     return "\n".join(out)
 
 
 # ──────────── 工具：数据读取 ────────────
 
+
 def list_all_weeks() -> list[tuple[int, int]]:
     """返回 reports/ 下所有 (year, week), 按时间倒序."""
-    result = []
+    result: list[tuple[int, int]] = []
     if not wr.REPORTS_DIR.exists():
         return result
     for year_dir in wr.REPORTS_DIR.iterdir():
@@ -167,6 +180,7 @@ def week_files(year: int, week: int) -> tuple[Path | None, Path | None]:
 
 
 # ──────────── 模板 (f-string) ────────────
+
 
 def tpl_base(title: str, body: str, active: str = "", port: int = 0) -> str:
     nav_items = [
@@ -218,11 +232,14 @@ def tpl_index(stats: dict, recent: list[tuple[int, int]]) -> str:
     pct = reported * 100 // total if total else 0
     totals = stats.get("totals", {})
 
-    recent_html = "".join(
-        f'<li><a href="/view/{yr}/{wk}">{wr.week_label(yr, wk)}</a>'
-        f' <span class="muted">({wr.week_range(yr, wk)[0]} ~ {wr.week_range(yr, wk)[1]})</span></li>'
-        for yr, wk in recent[:8]
-    ) or '<li class="muted">还没有任何周报. <a href="/new">写第一份</a> 吧.</li>'
+    recent_html = (
+        "".join(
+            f'<li><a href="/view/{yr}/{wk}">{wr.week_label(yr, wk)}</a>'
+            f' <span class="muted">({wr.week_range(yr, wk)[0]} ~ {wr.week_range(yr, wk)[1]})</span></li>'
+            for yr, wk in recent[:8]
+        )
+        or '<li class="muted">还没有任何周报. <a href="/new">写第一份</a> 吧.</li>'
+    )
 
     body = f"""
 <section class="hero">
@@ -274,7 +291,7 @@ def tpl_new(year: int, week: int, error: str = "") -> str:
 <h1>✍️ 写周报 · {wr.week_label(year, week)}</h1>
 <p class="muted">{wr.fmt_date_zh(mon)} (周一) ~ {wr.fmt_date_zh(sun)} (周日)</p>
 
-{('<div class="error">' + html.escape(error) + '</div>') if error else ''}
+{('<div class="error">' + html.escape(error) + "</div>") if error else ""}
 
 <form method="post" action="/new" class="report-form">
   <input type="hidden" name="year" value="{year}">
@@ -315,25 +332,25 @@ def tpl_new(year: int, week: int, error: str = "") -> str:
 
 
 def tpl_view(year: int, week: int, work_raw: str | None, life_raw: str | None) -> str:
-    body_parts = [f'<h1>📋 {wr.week_label(year, week)}</h1>']
+    body_parts = [f"<h1>📋 {wr.week_label(year, week)}</h1>"]
     mon, sun = wr.week_range(year, week)
     body_parts.append(f'<p class="muted">{wr.fmt_date_zh(mon)} ~ {wr.fmt_date_zh(sun)}</p>')
     body_parts.append('<div class="action-bar">')
     body_parts.append(f'<a class="btn" href="/combined/{year}/{week}">合并视图</a>')
     body_parts.append(f'<a class="btn" href="/new?year={year}&week={week}">修改</a>')
-    body_parts.append('</div>')
+    body_parts.append("</div>")
 
     if work_raw:
         body_parts.append('<article class="card"><h2>💼 工作</h2>')
         body_parts.append(md_to_html(work_raw))
-        body_parts.append('</article>')
+        body_parts.append("</article>")
     else:
         body_parts.append('<article class="card"><h2>💼 工作</h2><p class="muted">还没有记录</p></article>')
 
     if life_raw:
         body_parts.append('<article class="card"><h2>🌿 生活</h2>')
         body_parts.append(md_to_html(life_raw))
-        body_parts.append('</article>')
+        body_parts.append("</article>")
     else:
         body_parts.append('<article class="card"><h2>🌿 生活</h2><p class="muted">还没有记录</p></article>')
 
@@ -342,7 +359,7 @@ def tpl_view(year: int, week: int, work_raw: str | None, life_raw: str | None) -
 
 
 def tpl_combined(year: int, week: int, work_raw: str | None, life_raw: str | None) -> str:
-    body_parts = [f'<h1>📋 {wr.week_label(year, week)} · 合并视图</h1>']
+    body_parts = [f"<h1>📋 {wr.week_label(year, week)} · 合并视图</h1>"]
     mon, sun = wr.week_range(year, week)
     body_parts.append(f'<p class="muted">{wr.fmt_date_zh(mon)} ~ {wr.fmt_date_zh(sun)}</p>')
     body_parts.append(f'<div class="action-bar"><a class="btn" href="/view/{year}/{week}">分开视图</a></div>')
@@ -355,7 +372,7 @@ def tpl_combined(year: int, week: int, work_raw: str | None, life_raw: str | Non
     if parts:
         body_parts.append('<article class="card">')
         body_parts.append(md_to_html("\n\n---\n\n".join(parts)))
-        body_parts.append('</article>')
+        body_parts.append("</article>")
     else:
         body_parts.append('<p class="muted">还没有记录.</p>')
 
@@ -374,12 +391,12 @@ def tpl_list(weeks: list[tuple[int, int]]) -> str:
         status_work = "✅" if work_p else "—"
         status_life = "✅" if life_p else "—"
         rows.append(
-            f'<tr>'
+            f"<tr>"
             f'<td><a href="/view/{yr}/{wk}">{wr.week_label(yr, wk)}</a></td>'
             f'<td class="muted">{wr.fmt_date_zh(mon)} ~ {wr.fmt_date_zh(sun)}</td>'
             f'<td class="center">{status_work}</td>'
             f'<td class="center">{status_life}</td>'
-            f'</tr>'
+            f"</tr>"
         )
 
     body = f"""
@@ -387,18 +404,20 @@ def tpl_list(weeks: list[tuple[int, int]]) -> str:
 <p class="muted">共 {len(weeks)} 周</p>
 <table class="week-table">
   <thead><tr><th>周</th><th>日期范围</th><th>工作</th><th>生活</th></tr></thead>
-  <tbody>{''.join(rows)}</tbody>
+  <tbody>{"".join(rows)}</tbody>
 </table>
 """
     return tpl_base("历史", body, active="list", port=_PORT)
 
 
-def tpl_markdown(title: str, md_text: str, nav_links: list[tuple[str, str]] = None) -> str:
+def tpl_markdown(title: str, md_text: str, nav_links: list[tuple[str, str]] | None = None) -> str:
     nav_links_html = ""
     if nav_links:
-        nav_links_html = '<div class="action-bar">' + "".join(
-            f'<a class="btn" href="{url}">{label}</a>' for label, url in nav_links
-        ) + '</div>'
+        nav_links_html = (
+            '<div class="action-bar">'
+            + "".join(f'<a class="btn" href="{url}">{label}</a>' for label, url in nav_links)
+            + "</div>"
+        )
     body = f"""
 <h1>{html.escape(title)}</h1>
 {nav_links_html}
@@ -413,7 +432,7 @@ def tpl_markdown(title: str, md_text: str, nav_links: list[tuple[str, str]] = No
 def tpl_recap(year: int, prompt: str | None = None, error: str = "") -> str:
     body = f"""
 <h1>🤖 AI 复盘 · {year}</h1>
-{('<div class="error">' + html.escape(error) + '</div>') if error else ''}
+{('<div class="error">' + html.escape(error) + "</div>") if error else ""}
 
 <p>以下是把年度汇总喂给 LLM 的完整提示词. 复制 → 粘到 ChatGPT / Claude / Gemini 都行.</p>
 
@@ -448,7 +467,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b)
 
-    def _send_file(self, path: Path, content_type: str = None):
+    def _send_file(self, path: Path, content_type: str | None = None):
         if not path.exists() or not path.is_file():
             self._send(404, "Not found", "text/plain")
             return
@@ -480,7 +499,7 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/list":
                 self._send(200, tpl_list(list_all_weeks()))
             elif path.startswith("/static/"):
-                self._send_file(STATIC_DIR / path[len("/static/"):])
+                self._send_file(STATIC_DIR / path[len("/static/") :])
             else:
                 m = re.match(r"^/view/(\d+)/(\d+)/?$", path)
                 if m:
@@ -517,8 +536,9 @@ class Handler(BaseHTTPRequestHandler):
                     self._handle_recap(year)
                     return
                 self._send(404, "Not found", "text/plain")
-        except Exception as e:
+        except Exception:
             import traceback
+
             self._send(500, f"<pre>{traceback.format_exc()}</pre>")
 
     def do_POST(self):
@@ -527,8 +547,9 @@ class Handler(BaseHTTPRequestHandler):
                 self._handle_new_post()
             else:
                 self._send(404, "Not found", "text/plain")
-        except Exception as e:
+        except Exception:
             import traceback
+
             self._send(500, f"<pre>{traceback.format_exc()}</pre>")
 
     # ─── handlers ───
@@ -621,6 +642,7 @@ class Handler(BaseHTTPRequestHandler):
 
 # ──────────── main ────────────
 
+
 class ThreadingServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
 
@@ -639,9 +661,9 @@ def main() -> int:
 
     _PORT = args.port
     server = ThreadingServer((args.host, args.port), Handler)
-    print(f"📝 Weekly Report Web UI 已启动")
+    print("📝 Weekly Report Web UI 已启动")
     print(f"   打开: http://{args.host}:{args.port}")
-    print(f"   停止: Ctrl+C\n")
+    print("   停止: Ctrl+C\n")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
