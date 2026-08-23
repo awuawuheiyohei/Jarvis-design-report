@@ -12,9 +12,13 @@ weekly_report.py — 生活 / 工作 分开的周报工具
 from __future__ import annotations
 
 import argparse
+import calendar
 import json
 import os
+import re
 import sys
+import urllib.error
+import urllib.request
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -260,7 +264,6 @@ def cmd_today(_args: argparse.Namespace) -> int:
 
 def weeks_starting_in_month(year: int, month: int) -> list[tuple[int, int]]:
     """返回 (iso_year, iso_week)，包含所有「周一落在 (year, month) 内」的周。"""
-    import calendar
     _, last_day = calendar.monthrange(year, month)
     start = date(year, month, 1)
     end = date(year, month, last_day)
@@ -441,7 +444,6 @@ def _is_significant_chunk(chunk: str) -> bool:
 
 def _plan_chunks(text: str) -> list[str]:
     """把字符串拆成可单独匹配的关键字 (按空白 / 中英文常见标点切)。"""
-    import re
     return [c.strip() for c in re.split(r"[\s,，。、;；:：()（）【】\[\]/]+", text.lower()) if c.strip()]
 
 
@@ -966,9 +968,6 @@ def _ensure_yearly(year: int, refresh: bool) -> Path:
 
 
 def _recap_openai(year: int, summary_md: str, args: argparse.Namespace) -> int:
-    import urllib.request
-    import urllib.error
-
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         print("❌ 没有设置 OPENAI_API_KEY 环境变量。")

@@ -14,11 +14,10 @@ from __future__ import annotations
 import argparse
 import html
 import json
-import os
 import re
 import sys
 import urllib.parse
-from datetime import date, datetime
+from datetime import date
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from socketserver import ThreadingMixIn
