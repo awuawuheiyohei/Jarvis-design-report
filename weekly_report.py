@@ -267,29 +267,34 @@ def cmd_today(_args: argparse.Namespace) -> int:
 
 
 def weeks_starting_in_month(year: int, month: int) -> list[tuple[int, int]]:
-    """返回 (iso_year, iso_week)，包含所有「周一落在 (year, month) 内」的周。"""
-    _, last_day = calendar.monthrange(year, month)
-    start = date(year, month, 1)
-    end = date(year, month, last_day)
+    """返回 (iso_year, iso_week)，包含所有「周一落在 (year, month) 内」的周。
+
+    注意: 一个 ISO 周只在它周一的那个月出现一次 (例如 2026-W27 周一
+    是 6月29日, 所以只在 6月汇总里, 不在 7月汇总里)。这与「按周一所在月归类」
+    的常规划分日历方式一致。
+    """
     seen: set[tuple[int, int]] = set()
     weeks: list[tuple[int, int]] = []
-    cur = start
-    while cur <= end:
-        key = iso_week(cur)
-        if key not in seen:
-            seen.add(key)
-            weeks.append(key)
-        cur += timedelta(days=1)
+    # 遍历这个月里所有的周一
+    for day in range(1, calendar.monthrange(year, month)[1] + 1):
+        d = date(year, month, day)
+        if d.weekday() == 0:  # Monday
+            key = iso_week(d)
+            if key not in seen:
+                seen.add(key)
+                weeks.append(key)
     weeks.sort()
     return weeks
 
 
 def parse_section(raw: str | None) -> dict[str, list[str]]:
-    """把 write_section 产出的 markdown 反解为 dict。"""
+    """把 write_section 产出的 markdown 反解为 dict."""
     out: dict[str, list[str]] = {"completed": [], "next_week": [], "notes": []}
     if not raw:
         return out
-    for chunk in raw.split("\n## ")[1:]:
+    # 兼容 '## ' 在文件开头的情况 (无前置换行): 用正则切
+    import re as _re
+    for chunk in _re.split(r"(?:^|\n)## ", raw)[1:]:
         header, _, body = chunk.partition("\n")
         items: list[str] = []
         for line in body.splitlines():
@@ -432,11 +437,20 @@ def cmd_summary(args: argparse.Namespace) -> int:
 
 
 def weeks_in_year(year: int) -> list[tuple[int, int]]:
-    """返回 [year-01-01, year-12-31] 范围内所有 ISO 周 (iso_year, iso_week)，去重排序。"""
+    """返回 ISO 年 = year 的所有周, 去重排序。
+
+    按 ISO 标准, 一个 "ISO 年" 可能跨自然年: 2026 年从 2025-12-29 (周一) 开始,
+    到 2027-01-03 (周日) 结束。所以遍历 calendar year 1-12 月内所有天数, 取
+    iso_year 匹配的周。
+    """
     weeks: set[tuple[int, int]] = set()
-    for month in range(1, 13):
-        for w in weeks_starting_in_month(year, month):
-            weeks.add(w)
+    cur = date(year, 1, 1)
+    end = date(year, 12, 31)
+    while cur <= end:
+        iy, iw, _ = cur.isocalendar()
+        if iy == year:
+            weeks.add((iy, iw))
+        cur += timedelta(days=1)
     return sorted(weeks)
 
 

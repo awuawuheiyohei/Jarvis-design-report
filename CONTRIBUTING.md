@@ -49,28 +49,39 @@ bash bin/install_hooks.sh
 
 紧急跳过: `git commit --no-verify`
 
-## "Tests"
+## Tests
 
-There's no formal test suite. CI runs these smoke tests on every push:
+CI runs **45 unit tests** + smoke tests on every push:
 
-- All Python files compile (`py_compile`)
-- Every subcommand renders `--help` without error
-- `today` and `list` work
-- `weekly_report_web` module imports cleanly
-- All template functions render without error
-- All `bin/*.sh` pass `bash -n`
-- `com.user.weekly-report.plist` passes `plutil -lint`
+- **`tests/test_iso_calendar.py`** (16 tests): ISO 周数计算, 月/季度/年的周集合
+- **`tests/test_file_io.py`** (10 tests): parse / write / read roundtrip, path 生成
+- **`tests/test_plan_tracking.py`** (15 tests): 下周计划追踪的模糊匹配算法
+- **`tests/test_cli.py`** (4 tests): 每个子命令 `--help` 能跑通
 
-Run them locally before pushing:
+### Run locally
 
 ```bash
-# Python
+# 跑全部测试
+python3 -m unittest discover -s tests -v
+
+# 跑单个文件
+python3 -m unittest tests.test_iso_calendar -v
+
+# 跑单个 test case
+python3 -m unittest tests.test_plan_tracking.TestPlanTracking.test_cross_week_match
+```
+
+### Smoke tests (CI 也跑)
+
+```bash
 python3 -m py_compile weekly_report.py bin/*.py
 python3 weekly_report.py --help
+for cmd in new list view combine today summary yearly quarter recap; do
+    python3 weekly_report.py $cmd --help > /dev/null
+done
 python3 weekly_report.py today
 python3 weekly_report.py list
 
-# Shell scripts (macOS only)
 for f in bin/*.sh; do bash -n "$f"; done
 plutil -lint bin/com.user.weekly-report.plist
 ```
