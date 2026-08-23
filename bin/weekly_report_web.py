@@ -285,11 +285,35 @@ def tpl_index(stats: dict, recent: list[tuple[int, int]]) -> str:
     return tpl_base(f"主页 ({wr.week_label(y, w)})", body, active="home", port=_PORT)
 
 
-def tpl_new(year: int, week: int, error: str = "") -> str:
+def tpl_new(
+    year: int,
+    week: int,
+    prefill: dict | None = None,
+    error: str = "",
+) -> str:
+    """写 / 编辑周报表单. prefill 不为 None 时是编辑模式 (从已有数据回填)."""
     mon, sun = wr.week_range(year, week)
+    is_edit = prefill is not None and any(
+        prefill.get(k) for k in ("work_completed", "work_next_week", "work_notes", "life_completed", "life_notes")
+    )
+    title_prefix = "✏️ 编辑" if is_edit else "✍️ 写"
+    title_label = f"{title_prefix}周报 · {wr.week_label(year, week)}"
+    save_label = "保存修改" if is_edit else "保存"
+
+    def _val(key: str) -> str:
+        """从 prefill 取值, 转成 textarea 用的多行文本."""
+        if not prefill:
+            return ""
+        items = prefill.get(key) or []
+        return "\n".join(items)
+
+    work_p = prefill.get("work_files_exist", False) if prefill else False
+    life_p = prefill.get("life_files_exist", False) if prefill else False
+
     body = f"""
-<h1>✍️ 写周报 · {wr.week_label(year, week)}</h1>
+<h1>{title_label}</h1>
 <p class="muted">{wr.fmt_date_zh(mon)} (周一) ~ {wr.fmt_date_zh(sun)} (周日)</p>
+{('<div class="banner-edit">✏️ 编辑模式 — 表单已从已有数据回填. 直接修改后保存即可.</div>' if is_edit else "")}
 
 {('<div class="error">' + html.escape(error) + "</div>") if error else ""}
 
@@ -298,25 +322,25 @@ def tpl_new(year: int, week: int, error: str = "") -> str:
   <input type="hidden" name="week" value="{week}">
 
   <fieldset>
-    <legend>💼 工作</legend>
+    <legend>💼 工作 {("(已记录)" if work_p else "")}</legend>
     <label>本周完成 (一行一条)</label>
-    <textarea name="work_completed" rows="5" placeholder="完成了 X 项目的核心功能..."></textarea>
+    <textarea name="work_completed" rows="5" placeholder="完成了 X 项目的核心功能...">{html.escape(_val("work_completed"))}</textarea>
     <label>下周计划</label>
-    <textarea name="work_next_week" rows="3" placeholder="完成 Y 模块, 准备 Z 评审..."></textarea>
+    <textarea name="work_next_week" rows="3" placeholder="完成 Y 模块, 准备 Z 评审...">{html.escape(_val("work_next_week"))}</textarea>
     <label>心得 / 反思</label>
-    <textarea name="work_notes" rows="2" placeholder="这次踩了个坑: ..."></textarea>
+    <textarea name="work_notes" rows="2" placeholder="这次踩了个坑: ...">{html.escape(_val("work_notes"))}</textarea>
   </fieldset>
 
   <fieldset>
-    <legend>🌿 生活</legend>
+    <legend>🌿 生活 {("(已记录)" if life_p else "")}</legend>
     <label>本周完成</label>
-    <textarea name="life_completed" rows="4" placeholder="周末爬山, 跑了 5km..."></textarea>
+    <textarea name="life_completed" rows="4" placeholder="周末爬山, 跑了 5km...">{html.escape(_val("life_completed"))}</textarea>
     <label>心得 / 反思</label>
-    <textarea name="life_notes" rows="2" placeholder="..."></textarea>
+    <textarea name="life_notes" rows="2" placeholder="...">{html.escape(_val("life_notes"))}</textarea>
   </fieldset>
 
-  <button type="submit" class="btn primary">保存</button>
-  <a href="/" class="btn">取消</a>
+  <button type="submit" class="btn primary">{save_label}</button>
+  <a href="/view/{year}/{week}" class="btn">取消</a>
 </form>
 
 <details class="hint">
@@ -324,11 +348,12 @@ def tpl_new(year: int, week: int, error: str = "") -> str:
   <ul>
     <li>每个 textarea 里: 一行一条, 留空行不写条目</li>
     <li>觉得全部空白也行, 保存会跳过空白分类</li>
-    <li>更复杂的录入 (命令交互式提示) 用 <code>wr new</code> 命令行版本</li>
+    <li><b>编辑模式</b>: 表单已自动回填已有内容, 改完直接保存</li>
+    <li>想从空开始? 清空所有 textarea 再保存</li>
   </ul>
 </details>
 """
-    return tpl_base(f"写周报 {wr.week_label(year, week)}", body, active="new", port=_PORT)
+    return tpl_base(f"{title_label}", body, active="new", port=_PORT)
 
 
 def tpl_view(year: int, week: int, work_raw: str | None, life_raw: str | None) -> str:
@@ -337,7 +362,8 @@ def tpl_view(year: int, week: int, work_raw: str | None, life_raw: str | None) -
     body_parts.append(f'<p class="muted">{wr.fmt_date_zh(mon)} ~ {wr.fmt_date_zh(sun)}</p>')
     body_parts.append('<div class="action-bar">')
     body_parts.append(f'<a class="btn" href="/combined/{year}/{week}">合并视图</a>')
-    body_parts.append(f'<a class="btn" href="/new?year={year}&week={week}">修改</a>')
+    body_parts.append(f'<a class="btn primary" href="/edit/{year}/{week}">✏️ 编辑</a>')
+    body_parts.append(f'<a class="btn danger" href="/delete/{year}/{week}">🗑️ 删除</a>')
     body_parts.append("</div>")
 
     if work_raw:
@@ -491,16 +517,32 @@ class Handler(BaseHTTPRequestHandler):
 
             if path == "/" or path == "/index.html":
                 self._send(200, tpl_index(coverage_stats(), list_all_weeks()))
-            elif path == "/new":
+            elif path == "/new" or path.startswith("/edit/"):
                 today = date.today()
-                year = int(qs.get("year", today.year if (qs.get("year") is None) else qs["year"]))
-                week = int(qs.get("week", wr.iso_week(today)[1]))
-                self._send(200, tpl_new(year, week))
+                # /edit/YEAR/WEEK 也走同一路由
+                if path.startswith("/edit/"):
+                    m_edit = re.match(r"^/edit/(\d+)/(\d+)/?$", path)
+                    if m_edit:
+                        year = int(m_edit.group(1))
+                        week = int(m_edit.group(2))
+                    else:
+                        self._send(404, "Bad edit URL", "text/plain")
+                        return
+                else:
+                    year = int(qs.get("year", today.year))
+                    week = int(qs.get("week", wr.iso_week(today)[1]))
+                # 如果该周已有数据, 预填充
+                prefill = self._build_prefill(year, week)
+                self._send(200, tpl_new(year, week, prefill=prefill))
             elif path == "/list":
                 self._send(200, tpl_list(list_all_weeks()))
             elif path.startswith("/static/"):
                 self._send_file(STATIC_DIR / path[len("/static/") :])
             else:
+                m = re.match(r"^/delete/(\d+)/(\d+)/?$", path)
+                if m:
+                    self._handle_delete(int(m.group(1)), int(m.group(2)))
+                    return
                 m = re.match(r"^/view/(\d+)/(\d+)/?$", path)
                 if m:
                     year, week = int(m.group(1)), int(m.group(2))
@@ -554,6 +596,26 @@ class Handler(BaseHTTPRequestHandler):
 
     # ─── handlers ───
 
+    def _build_prefill(self, year: int, week: int) -> dict | None:
+        """读已有周报文件, 返回 dict 给表单预填充. 没数据返回 None."""
+        work_path, life_path = week_files(year, week)
+        prefill: dict = {
+            "work_files_exist": work_path is not None,
+            "life_files_exist": life_path is not None,
+        }
+        if not work_path and not life_path:
+            return None  # 没数据, 不进入编辑模式
+        if work_path:
+            work_data = wr.parse_section(work_path.read_text(encoding="utf-8"))
+            prefill["work_completed"] = work_data["completed"]
+            prefill["work_next_week"] = work_data["next_week"]
+            prefill["work_notes"] = work_data["notes"]
+        if life_path:
+            life_data = wr.parse_section(life_path.read_text(encoding="utf-8"))
+            prefill["life_completed"] = life_data["completed"]
+            prefill["life_notes"] = life_data["notes"]
+        return prefill
+
     def _handle_new_post(self):
         length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(length).decode("utf-8")
@@ -586,6 +648,28 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, tpl_new(year, week, error="生活和工作都是空的, 没保存任何文件."))
             return
         self._redirect(f"/view/{year}/{week}")
+
+    def _handle_delete(self, year: int, week: int) -> None:
+        """删除一周的全部文件 (work + life)."""
+        work_path, life_path = week_files(year, week)
+        deleted = []
+        for p in (work_path, life_path):
+            if p and p.exists():
+                p.unlink()
+                deleted.append(p.name)
+        if deleted:
+            self._send(
+                200,
+                tpl_index(
+                    coverage_stats(),
+                    list_all_weeks(),
+                ).replace(
+                    "<h1>📝 Weekly Report</h1>",
+                    f'<h1>🗑️ 已删除 {wr.week_label(year, week)}</h1><p class="muted">已删除: {", ".join(deleted)}</p><p><a class="btn primary" href="/">回到主页</a></p>',
+                ),
+            )
+        else:
+            self._send(404, f"{wr.week_label(year, week)} 没有文件可删", "text/plain")
 
     def _handle_summary(self, year: int, month: int):
         # 先确保生成最新

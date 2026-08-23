@@ -1,10 +1,10 @@
 """CLI 集成测试 — 跑实际子命令验证输出."""
-import json
+
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
-import shutil
 from pathlib import Path
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
@@ -15,12 +15,12 @@ class TestCliHelp(unittest.TestCase):
     """每个子命令的 --help 应该能跑成功."""
 
     def test_help(self):
-        for cmd in ["new", "list", "view", "combine", "today",
-                    "summary", "yearly", "quarter", "recap"]:
+        for cmd in ["new", "list", "view", "combine", "today", "summary", "yearly", "quarter", "recap"]:
             with self.subTest(cmd=cmd):
                 r = subprocess.run(
                     [sys.executable, WR, cmd, "--help"],
-                    capture_output=True, text=True,
+                    capture_output=True,
+                    text=True,
                 )
                 self.assertEqual(r.returncode, 0, f"{cmd} --help failed: {r.stderr}")
                 self.assertIn("usage:", r.stdout)
@@ -30,7 +30,8 @@ class TestCliTodayAndList(unittest.TestCase):
     def test_today(self):
         r = subprocess.run(
             [sys.executable, WR, "today"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         self.assertEqual(r.returncode, 0)
         self.assertIn("今天", r.stdout)
@@ -40,7 +41,8 @@ class TestCliTodayAndList(unittest.TestCase):
     def test_list(self):
         r = subprocess.run(
             [sys.executable, WR, "list"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         self.assertEqual(r.returncode, 0)
         self.assertIn("已有周报", r.stdout)
@@ -66,7 +68,8 @@ class TestCliNewInTempDir(unittest.TestCase):
         result = subprocess.run(
             [sys.executable, WR, "new", "--year", "2099", "--week", "1"],
             input=":q\n:q\n",
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
             timeout=10,
         )
         # 应该不写文件 (因为都空)

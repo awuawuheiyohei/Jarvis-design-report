@@ -1,8 +1,9 @@
 """测试 parse_section / write_section / read_section / report_path."""
-import unittest
+
+import shutil
 import sys
 import tempfile
-import shutil
+import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -125,3 +126,50 @@ class TestReportPath(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestBuildPrefill(unittest.TestCase):
+    """测试 _build_prefill (Handler 实例方法, 通过模拟调用)."""
+
+    def setUp(self):
+        # 用真实 REPORTS_DIR 读 W30 (用户有数据)
+        self.year, self.week = 2026, 30
+
+    def _call_build_prefill(self):
+        """调用 _build_prefill 跳过 self."""
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "bin"))
+        from weekly_report_web import Handler
+
+        return Handler._build_prefill(None, self.year, self.week)
+
+    def test_returns_dict_for_existing_week(self):
+        prefill = self._call_build_prefill()
+        self.assertIsNotNone(prefill)
+        self.assertIn("work_completed", prefill)
+        self.assertIn("life_completed", prefill)
+
+    def test_flags_existing_files(self):
+        prefill = self._call_build_prefill()
+        # 实际 W30 work + life 都存在
+        self.assertTrue(prefill["work_files_exist"])
+        self.assertTrue(prefill["life_files_exist"])
+
+    def test_returns_none_for_missing_week(self):
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "bin"))
+        from weekly_report_web import Handler
+
+        # 用一个肯定没数据的周
+        result = Handler._build_prefill(None, 2099, 1)
+        self.assertIsNone(result)
+
+    def test_includes_completed_items(self):
+        prefill = self._call_build_prefill()
+        # W30 work 至少有 2 条 (CISSP + Codex)
+        self.assertGreaterEqual(len(prefill["work_completed"]), 2)
+        self.assertIsInstance(prefill["work_completed"], list)

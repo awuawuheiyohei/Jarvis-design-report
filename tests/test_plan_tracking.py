@@ -1,6 +1,7 @@
 """测试 _track_plans 模糊匹配 (周计划追踪的核心)."""
-import unittest
+
 import sys
+import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
