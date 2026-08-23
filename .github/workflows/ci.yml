@@ -67,6 +67,18 @@ jobs:
           print('✅ web UI templates render')
           "
 
+      - name: Install lint tools
+        run: pip install --quiet ruff mypy
+
+      - name: Ruff check
+        run: ruff check .
+
+      - name: Ruff format check
+        run: ruff format --check .
+
+      - name: MyPy
+        run: mypy weekly_report.py bin/weekly_report_web.py bin/generate_demo.py
+
   macos:
     name: macOS shell scripts
     runs-on: macos-latest

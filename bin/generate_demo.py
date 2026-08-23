@@ -161,9 +161,9 @@ def main() -> int:
         created += 1
 
     print(f"\n🎉 完成: 新建 {created} 周, 跳过 {skipped} 周")
-    print(f"📁 现在 reports/2026/ 下共有 6 周数据 (W25-W30)")
-    print(f"\n💡 想看汇总:")
-    print(f"   python3 weekly_report.py summary 2026 7")
+    print("📁 现在 reports/2026/ 下共有 6 周数据 (W25-W30)")
+    print("\n💡 想看汇总:")
+    print("   python3 weekly_report.py summary 2026 7")
     print(f"   python3 weekly_report.py quarter 2026 3")
     print(f"   python3 weekly_report.py yearly 2026")
     return 0

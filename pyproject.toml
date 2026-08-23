@@ -1,0 +1,38 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+extend-exclude = ["__pycache__", ".venv", "reports", "tests/fixtures"]
+
+[tool.ruff.lint]
+# 默认规则集: pycodestyle (E/W), pyflakes (F), isort (I), bugbear (B), pyupgrade (UP)
+select = ["E", "W", "F", "I", "B", "UP"]
+ignore = [
+    "E501",   # line too long (我们用 120, 个别行可超)
+    "B008",   # 默认值里的函数调用 (argparse 里大量用)
+    "B904",   # raise from (没强制要求)
+    "UP031",  # % formatting (legacy 用法, 没必要全改)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"bin/*.py" = ["B", "UP"]  # bin/ 脚本宽松
+"tests/*.py" = ["B"]      # 测试代码宽松
+"reports/**/*.md" = ["ALL"] # markdown 忽略 (其实 .md 不是 py)
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.11"
+# 不开 strict, 但抓明显问题
+disallow_untyped_defs = false  # 函数没标注也允许 (legacy 代码, 改起来太多)
+disallow_incomplete_defs = false
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = false
+ignore_missing_imports = true
+exclude = ["reports/", "tests/fixtures/"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
