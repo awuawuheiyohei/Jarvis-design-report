@@ -34,6 +34,21 @@ python3 bin/generate_demo.py
 
 See [README.md](README.md) for the full architecture.
 
+## Pre-commit hooks (推荐)
+
+装一次, 之后每次 `git commit` 会自动跑 lint / format / type check:
+
+```bash
+bash bin/install_hooks.sh
+```
+
+会跑:
+- `trailing-whitespace` / `end-of-file-fixer` / `check-yaml`
+- `ruff check` (auto-fix) + `ruff format`
+- `mypy`
+
+紧急跳过: `git commit --no-verify`
+
 ## "Tests"
 
 There's no formal test suite. CI runs these smoke tests on every push:
