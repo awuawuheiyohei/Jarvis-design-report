@@ -1151,6 +1151,221 @@ def cmd_recap(args: argparse.Namespace) -> int:
     return 0
 
 
+# ---------- GitHub Issues 同步 ----------
+
+GHSYNC_FILE = REPORTS_DIR / ".gh-sync.json"
+
+
+def _load_gh_sync() -> dict:
+    """读 reports/.gh-sync.json. 不存在返回空结构."""
+    if not GHSYNC_FILE.exists():
+        return {"issues": {}}
+    try:
+        return json.loads(GHSYNC_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {"issues": {}}
+
+
+def _save_gh_sync(data: dict) -> None:
+    GHSYNC_FILE.parent.mkdir(parents=True, exist_ok=True)
+    GHSYNC_FILE.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def _plan_key(plan_text: str) -> str:
+    """生成 plan 文本的稳定 hash key (用于匹配 issue)."""
+    import hashlib
+
+    return hashlib.sha256(plan_text.lower().strip().encode("utf-8")).hexdigest()[:16]
+
+
+def _gh_cli(*args: str, input_data: str | None = None) -> tuple[int, str, str]:
+    """调 gh CLI. 返回 (returncode, stdout, stderr)."""
+    import subprocess
+
+    r = subprocess.run(
+        ["gh"] + list(args),
+        capture_output=True,
+        text=True,
+        input=input_data,
+        timeout=30,
+    )
+    return r.returncode, r.stdout, r.stderr
+
+
+def _gh_issue_create(repo: str, title: str, body: str) -> int | None:
+    """用 gh CLI 创建 issue. 返回 issue number (int) 或 None (失败)."""
+    rc, out, err = _gh_cli(
+        "issue",
+        "create",
+        "--repo",
+        repo,
+        "--title",
+        title,
+        "--body",
+        body,
+        "--label",
+        "weekly-report",
+    )
+    if rc != 0:
+        print(f"  ⚠️  gh issue create 失败: {err.strip()[:200]}")
+        return None
+    # gh 输出 issue URL, 提取 number
+    # 格式: https://github.com/owner/repo/issues/123
+    try:
+        return int(out.strip().split("/")[-1])
+    except (ValueError, IndexError):
+        print(f"  ⚠️  无法解析 issue URL: {out.strip()}")
+        return None
+
+
+def _gh_issue_close(repo: str, issue_num: int, comment: str = "") -> bool:
+    """用 gh CLI 关闭 issue."""
+    args = [
+        "issue",
+        "close",
+        str(issue_num),
+        "--repo",
+        repo,
+        "--reason",
+        "completed",
+    ]
+    if comment:
+        args += ["--comment", comment]
+    rc, out, err = _gh_cli(*args)
+    return rc == 0
+
+
+def _gh_issue_state(repo: str, issue_num: int) -> str | None:
+    """查询 issue 状态: 'open' / 'closed' / None (出错)."""
+    rc, out, err = _gh_cli(
+        "issue",
+        "view",
+        str(issue_num),
+        "--repo",
+        repo,
+        "--json",
+        "state",
+        "-q",
+        ".state",
+    )
+    if rc != 0:
+        return None
+    return out.strip()
+
+
+def cmd_sync(args: argparse.Namespace) -> int:
+    """把所有周报的 next_week 计划同步到 GitHub Issues.
+
+    - 计划: 没对应的 issue 就创建一个, 记到 .gh-sync.json
+    - 完成: 复用 _track_plans 找已完成的计划, 关闭对应 issue
+    - 幂等: 重跑不会重复创建
+    """
+
+    year = args.year or date.today().year
+    repo = args.repo
+    if not repo:
+        print("❌ 需要 --repo OWNER/REPO (例如 --repo awuawuheiyohei/Jarvis-design-report)")
+        return 1
+
+    # 收集所有 plans
+    weeks = weeks_in_year(year)
+    plans: list[tuple[int, int, str]] = []  # (year, week, plan_text)
+    for wy, ww in weeks:
+        for cat in ("work", "life"):
+            path = report_path(cat, wy, ww)
+            if path.exists():
+                data = parse_section(path.read_text(encoding="utf-8"))
+                for plan_text in data.get("next_week", []):
+                    plans.append((wy, ww, plan_text))
+
+    print(f"📋 扫描到 {len(plans)} 条 next_week 计划 ({year} 年)")
+
+    sync_data = _load_gh_sync()
+
+    # 1. 创建缺失的 issues
+    created = 0
+    for wy, ww, plan in plans:
+        key = _plan_key(plan)
+        if key in sync_data["issues"]:
+            continue  # 已同步, 跳过
+        title = f"[W{ww:02d}] {plan}"
+        body = f"From weekly report **{wy}-W{ww:02d}** next-week plans.\n\nPlan: {plan}\n\n_Auto-created by `wr sync`._"
+        new_issue_num = _gh_issue_create(repo, title, body)
+        if new_issue_num:
+            sync_data["issues"][key] = {
+                "issue_number": new_issue_num,
+                "title": title,
+                "from_year": wy,
+                "from_week": ww,
+                "created_at": datetime.now().isoformat(timespec="seconds"),
+            }
+            print(f"  ✅ #{new_issue_num}: {title}")
+            created += 1
+
+    # 2. 找已完成的 plan (复用 _track_plans)
+    # 收集所有 week 的 work 数据
+    weeks_data = []
+    for wy, ww in weeks:
+        path = report_path("work", wy, ww)
+        if path.exists():
+            parsed: dict = parse_section(path.read_text(encoding="utf-8"))
+            parsed["year"] = wy
+            parsed["week"] = ww
+            weeks_data.append(parsed)
+    _, closed_plans = _track_plans(weeks_data)
+    print(f"\n📊 找到 {len(closed_plans)} 条已完成计划")
+
+    # 3. 关闭对应 issue
+    closed_count = 0
+    for cp in closed_plans:
+        from_week = cp["from_week"]
+        plan_text = cp["plan"]
+        key = _plan_key(plan_text)
+        if key not in sync_data["issues"]:
+            continue  # 没 issue, 跳过
+        info = sync_data["issues"][key]
+        issue_num_raw = info["issue_number"]
+        if not isinstance(issue_num_raw, int):
+            continue  # 映射数据损坏, 跳过
+        issue_num: int = issue_num_raw
+        # 查当前状态, 已关闭就跳过
+        state = _gh_issue_state(repo, issue_num)
+        if state == "closed":
+            continue
+        comment = f"Auto-closed: matched weekly report week {from_week}."
+        if _gh_issue_close(repo, issue_num, comment):
+            print(f"  ✅ #{issue_num}: {plan_text}")
+            closed_count += 1
+        else:
+            print(f"  ⚠️  关闭 #{issue_num} 失败")
+
+    _save_gh_sync(sync_data)
+
+    print(f"\n🎉 同步完成: 创建 {created} issue, 关闭 {closed_count} issue")
+    print(f"   映射文件: {GHSYNC_FILE}")
+    if not plans:
+        print("   (没有 next_week 计划, 不用同步)")
+    return 0
+
+
+def cmd_sync_status(args: argparse.Namespace) -> int:
+    """显示 .gh-sync.json 的当前状态 (列出所有已同步的 issue)."""
+    sync_data = _load_gh_sync()
+    if not sync_data["issues"]:
+        print("📭 还没有任何同步记录. 跑 `wr sync --repo OWNER/REPO` 开始.")
+        return 0
+    print(f"📋 已同步 {len(sync_data['issues'])} 条计划:\n")
+    print(f"{'Issue':<8} {'From':<10} {'Title'}")
+    print("-" * 60)
+    for _key, info in sync_data["issues"].items():
+        from_w = f"{info['from_year']}-W{info['from_week']:02d}"
+        print(f"#{info['issue_number']:<7} {from_w:<10} {info['title']}")
+    return 0
+
+
 # ---------- CLI 入口 ----------
 
 
@@ -1213,6 +1428,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_recap.add_argument("--save", help="(仅 openai) 保存路径，默认 reports/YEAR/YEAR-recap.md")
     p_recap.add_argument("--refresh", action="store_true", help="先重生成 yearly.md 再做复盘")
     p_recap.set_defaults(func=cmd_recap)
+
+    p_sync = sub.add_parser("sync", help="把 next_week 计划同步到 GitHub Issues (需要 gh auth login)")
+    p_sync.add_argument("year", type=int, nargs="?", help="要同步的年份 (默认今年)")
+    p_sync.add_argument("--repo", required=True, help="目标仓库, 格式 OWNER/REPO")
+    p_sync.set_defaults(func=cmd_sync)
+
+    p_syncs = sub.add_parser("sync-status", help="显示已同步到 GitHub 的 issue 列表")
+    p_syncs.add_argument("year", type=int, nargs="?", help="年份 (默认今年)")
+    p_syncs.set_defaults(func=cmd_sync_status)
 
     return p
 

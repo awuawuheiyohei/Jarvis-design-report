@@ -80,3 +80,56 @@ class TestCliNewInTempDir(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestGhSyncHelpers(unittest.TestCase):
+    """测试 _load_gh_sync / _save_gh_sync / _plan_key 工具函数."""
+
+    @classmethod
+    def setUpClass(cls):
+        import sys
+
+        cls.wr = sys.modules.get("weekly_report")
+        if cls.wr is None:
+            import weekly_report as wr_mod
+
+            cls.wr = wr_mod
+            sys.modules["weekly_report"] = wr_mod
+
+    def setUp(self):
+        import tempfile
+
+        self._orig = self.wr.GHSYNC_FILE
+        self.tmp = tempfile.mkdtemp()
+        import pathlib as _p
+
+        self.wr.REPORTS_DIR = _p.Path(self.tmp)
+        self.wr.GHSYNC_FILE = self.wr.REPORTS_DIR / ".gh-sync.json"
+
+    def tearDown(self):
+        import shutil
+
+        self.wr.GHSYNC_FILE = self._orig
+        self.wr.REPORTS_DIR = self._orig.parent
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def test_load_empty(self):
+        result = self.wr._load_gh_sync()
+        self.assertEqual(result, {"issues": {}})
+
+    def test_save_and_load_roundtrip(self):
+        data = {"issues": {"abc123": {"issue_number": 42, "title": "test"}}}
+        self.wr._save_gh_sync(data)
+        loaded = self.wr._load_gh_sync()
+        self.assertEqual(loaded, data)
+
+    def test_plan_key_deterministic(self):
+        k1 = self.wr._plan_key("Ship to production")
+        k2 = self.wr._plan_key("  ship to PRODUCTION  ")
+        # 大小写 + 前后空格不影响
+        self.assertEqual(k1, k2)
+
+    def test_plan_key_different_for_different(self):
+        k1 = self.wr._plan_key("Ship to production")
+        k2 = self.wr._plan_key("Ship to staging")
+        self.assertNotEqual(k1, k2)

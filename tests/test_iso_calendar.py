@@ -128,7 +128,7 @@ class TestStreak(unittest.TestCase):
     """测试 compute_streak (连续写周报的周数)."""
 
     def test_streak_with_real_data(self):
-        """用真实 reports/ 数据 (W25-W30 都有) → streak = 6."""
+        """用真实 reports/ 数据 (W25-W31 都有) → streak = 7."""
         from datetime import date
 
         streak = wr.compute_streak(date(2026, 7, 26))
@@ -139,7 +139,7 @@ class TestStreak(unittest.TestCase):
         from datetime import date
 
         streak = wr.compute_streak(date(2026, 8, 23))
-        self.assertEqual(streak, 6)
+        self.assertEqual(streak, 7)
 
     def test_streak_no_data(self):
         """完全没数据 → 0."""
