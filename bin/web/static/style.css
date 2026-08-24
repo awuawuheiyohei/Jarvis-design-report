@@ -232,6 +232,22 @@ h3 { font-size: 1.1em; margin-top: 1.2em; color: #4b5563; }
   margin-bottom: 16px;
 }
 
+/* ===== List action links ===== */
+.action-link {
+  display: inline-block;
+  padding: 2px 6px;
+  margin-left: 4px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 0.95em;
+  background: #f3f4f6;
+  color: #1f2937;
+  transition: all 0.1s;
+}
+.action-link:hover { background: #e5e7eb; text-decoration: none; }
+.action-link.danger { background: #fee2e2; color: #991b1b; }
+.action-link.danger:hover { background: #fecaca; }
+
 /* ===== Recap prompt ===== */
 .recap-prompt { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; }
 .recap-prompt summary { cursor: pointer; font-weight: 600; color: #4b5563; }

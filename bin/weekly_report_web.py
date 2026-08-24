@@ -263,7 +263,7 @@ def tpl_index(stats: dict, recent: list[tuple[int, int]]) -> str:
     <div class="big">{wr.week_label(y, w)}</div>
     <div class="muted">{wr.fmt_date_zh(mon)} ~ {wr.fmt_date_zh(sun)}</div>
     <div class="muted">本周还剩 <strong>{days_left}</strong> 天</div>
-    <a class="btn primary" href="/new">✍️ 写本周周报</a>
+    <a class="btn primary" href="/new?year={y}&week={w}">✍️ 写本周周报</a>
   </div>
   <div class="hero-stats">
     <div class="stat">
@@ -290,7 +290,7 @@ def tpl_index(stats: dict, recent: list[tuple[int, int]]) -> str:
 <section>
   <h2>快速入口</h2>
   <div class="quick-grid">
-    <a class="quick-card" href="/list"><div class="emoji">📚</div><div>所有周报</div></a>
+    <a class="quick-card" href="/list"><div class="emoji">📚</div><div>所有周报<br><span class="muted" style="font-size: 0.7em">每行可编辑 / 删除</span></div></a>
     <a class="quick-card" href="/quarter/{today.year}/3"><div class="emoji">📅</div><div>Q3 季度</div></a>
     <a class="quick-card" href="/yearly/{today.year}"><div class="emoji">📊</div><div>年度汇总</div></a>
     <a class="quick-card" href="/recap/{today.year}"><div class="emoji">🤖</div><div>AI 复盘</div></a>
@@ -433,7 +433,9 @@ def tpl_list(weeks: list[tuple[int, int]]) -> str:
         status_life = "✅" if life_p else "—"
         rows.append(
             f"<tr>"
-            f'<td><a href="/view/{yr}/{wk}">{wr.week_label(yr, wk)}</a></td>'
+            f'<td><a href="/view/{yr}/{wk}">{wr.week_label(yr, wk)}</a> '
+            f'<a class="action-link" href="/edit/{yr}/{wk}" title="编辑">✏️</a> '
+            f'<a class="action-link danger" href="/delete/{yr}/{wk}" title="删除">🗑️</a></td>'
             f'<td class="muted">{wr.fmt_date_zh(mon)} ~ {wr.fmt_date_zh(sun)}</td>'
             f'<td class="center">{status_work}</td>'
             f'<td class="center">{status_life}</td>'

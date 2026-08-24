@@ -133,3 +133,44 @@ class TestGhSyncHelpers(unittest.TestCase):
         k1 = self.wr._plan_key("Ship to production")
         k2 = self.wr._plan_key("Ship to staging")
         self.assertNotEqual(k1, k2)
+
+
+class TestTplListActionLinks(unittest.TestCase):
+    """A1 增强: /list 页应该每行有 ✏️ 编辑 + 🗑️ 删除 链接."""
+
+    def test_tpl_list_includes_edit_link(self):
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "bin"))
+        from weekly_report_web import tpl_list
+
+        html = tpl_list([(2026, 30), (2026, 29)])
+        self.assertIn("/edit/2026/30", html)
+        self.assertIn("/edit/2026/29", html)
+
+    def test_tpl_list_includes_delete_link(self):
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "bin"))
+        from weekly_report_web import tpl_list
+
+        html = tpl_list([(2026, 30)])
+        self.assertIn("/delete/2026/30", html)
+
+    def test_tpl_index_home_button_uses_year_week_query(self):
+        """主页写周报按钮应该带 ?year=&week= 参数, 让有数据的周自动进编辑模式."""
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "bin"))
+        from weekly_report_web import tpl_index
+
+        html = tpl_index(
+            stats={"streak": 7, "coverage": {"weeks_reported": 7, "weeks_total": 53}, "totals": {}},
+            recent=[(2026, 31)],
+        )
+        # 主页按钮应该带 year= 和 week= 参数
+        self.assertIn("new?year=", html)
+        self.assertIn("&week=", html)
