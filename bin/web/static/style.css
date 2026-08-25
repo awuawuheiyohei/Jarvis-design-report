@@ -264,14 +264,58 @@ h3 { font-size: 1.1em; margin-top: 1.2em; color: #4b5563; }
 }
 
 /* ===== Edit-mode banner ===== */
-.banner-edit {
-  background: #eff6ff;
-  border: 1px solid #93c5fd;
-  color: #1e40af;
+.banner-edit, .banner-append, .banner-replace {
   padding: 10px 16px;
   border-radius: 6px;
   margin: 12px 0 18px;
   font-size: 0.92em;
+}
+.banner-edit {
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  color: #1e40af;
+}
+.banner-append {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #14532d;
+}
+.banner-replace {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #7f1d1d;
+}
+
+/* ===== Existing items (append mode) ===== */
+.existing-block {
+  background: #fafafa;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 12px 0;
+}
+.existing-block summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #4b5563;
+  margin-bottom: 8px;
+}
+.existing-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 8px 0;
+}
+.existing-list li {
+  padding: 4px 0;
+  color: #4b5563;
+  border-bottom: 1px solid #f3f4f6;
+}
+.existing-list li:last-child { border-bottom: none; }
+.existing-empty {
+  color: #9ca3af;
+  font-style: italic;
+  font-size: 0.9em;
+  margin: 4px 0;
 }
 
 /* ===== Hint ===== */

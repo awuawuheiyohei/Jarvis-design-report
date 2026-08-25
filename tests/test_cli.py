@@ -174,3 +174,60 @@ class TestTplListActionLinks(unittest.TestCase):
         # 主页按钮应该带 year= 和 week= 参数
         self.assertIn("new?year=", html)
         self.assertIn("&week=", html)
+
+
+class TestMergeForAppend(unittest.TestCase):
+    """直接测 _merge_for_append 纯函数 (case-insensitive dedup)."""
+
+    @classmethod
+    def setUpClass(cls):
+        import sys
+        from pathlib import Path
+
+        bin_path = str(Path(__file__).resolve().parent.parent / "bin")
+        if bin_path not in sys.path:
+            sys.path.insert(0, bin_path)
+
+    def test_basic_merge(self):
+        from weekly_report_web import _merge_for_append
+
+        result = _merge_for_append(["a", "b"], ["c", "d"])
+        self.assertEqual(result, ["a", "b", "c", "d"])
+
+    def test_dedup_case_insensitive(self):
+        from weekly_report_web import _merge_for_append
+
+        result = _merge_for_append(["Foo", "BAR"], ["foo", "Bar", "new"])
+        self.assertEqual(result, ["Foo", "BAR", "new"])
+
+    def test_whitespace_tolerance(self):
+        from weekly_report_web import _merge_for_append
+
+        result = _merge_for_append(["item 1"], ["  item 1  ", "item 2"])
+        # "  item 1  " 与 "item 1" 视为相同
+        self.assertEqual(result, ["item 1", "item 2"])
+
+    def test_existing_empty(self):
+        from weekly_report_web import _merge_for_append
+
+        result = _merge_for_append([], ["a", "b"])
+        self.assertEqual(result, ["a", "b"])
+
+    def test_new_empty(self):
+        from weekly_report_web import _merge_for_append
+
+        result = _merge_for_append(["a", "b"], [])
+        self.assertEqual(result, ["a", "b"])
+
+    def test_both_empty(self):
+        from weekly_report_web import _merge_for_append
+
+        result = _merge_for_append([], [])
+        self.assertEqual(result, [])
+
+    def test_unicode_dedup(self):
+        from weekly_report_web import _merge_for_append
+
+        result = _merge_for_append(["完成 X", "修复 Y"], ["完成 X", "完成 Z"])
+        # "完成 X" 重复, 跳过; "完成 Z" 是新的
+        self.assertEqual(result, ["完成 X", "修复 Y", "完成 Z"])

@@ -193,6 +193,21 @@ BAK_DIR = wr.REPORTS_DIR / ".bak"
 MAX_BACKUPS_PER_FILE = 10  # 每个文件最多保留 10 个备份
 
 
+def _merge_for_append(existing_items: list[str], new_items: list[str]) -> list[str]:
+    """Append mode merge: existing + new, case-insensitive dedup.
+
+    Existing items come first, new items appended after.
+    Dedup is case-insensitive and ignores leading/trailing whitespace.
+    """
+    seen = {s.strip().lower() for s in existing_items}
+    out = list(existing_items)
+    for n in new_items:
+        if n.strip().lower() not in seen:
+            out.append(n)
+            seen.add(n.strip().lower())
+    return out
+
+
 def _backup_existing(path: Path | None) -> None:
     """保存前把现有文件备份到 .bak/. 每个文件最多保留 10 个.
 
@@ -326,58 +341,113 @@ def tpl_index(stats: dict, recent: list[tuple[int, int]]) -> str:
     return tpl_base(f"主页 ({wr.week_label(y, w)})", body, active="home", port=_PORT)
 
 
+def _render_existing_items_html(items: list[str], label: str) -> str:
+    """Render 现有条目为 read-only <ul>."""
+    if not items:
+        return f'<p class="existing-empty">暂无 {html.escape(label)}</p>'
+    lis = "".join(f"<li>{html.escape(it)}</li>" for it in items)
+    return f'<ul class="existing-list">{lis}</ul>'
+
+
 def tpl_new(
     year: int,
     week: int,
     prefill: dict | None = None,
+    existing: dict | None = None,
+    mode: str = "fresh",
     error: str = "",
 ) -> str:
-    """写 / 编辑周报表单. prefill 不为 None 时是编辑模式 (从已有数据回填)."""
-    mon, sun = wr.week_range(year, week)
-    is_edit = prefill is not None and any(
-        prefill.get(k) for k in ("work_completed", "work_next_week", "work_notes", "life_completed", "life_notes")
-    )
-    title_prefix = "✏️ 编辑" if is_edit else "✍️ 写"
-    title_label = f"{title_prefix}周报 · {wr.week_label(year, week)}"
-    save_label = "保存修改" if is_edit else "保存"
+    """写 / 编辑 / 追加 周报表单.
 
-    def _val(key: str) -> str:
-        """从 prefill 取值, 转成 textarea 用的多行文本."""
+    Modes:
+    - fresh: 空白表单, 创建新
+    - replace: 预填现有内容, 提交会覆盖
+    - append: 显示现有 + 空白输入, 提交追加 (不会丢旧条目)
+    """
+    mon, sun = wr.week_range(year, week)
+    title_label = f"{wr.week_label(year, week)}"
+
+    if mode == "append":
+        h1 = f"➕ 追加到 {title_label}"
+        save_label = "追加新条目"
+        banner = """<div class="banner-append"><strong>追加模式</strong> — 提交后<strong>追加到现有条目后</strong>, 不会丢失任何已有内容. 现有条目见下方"现有内容"区.</div>"""
+    elif mode == "replace":
+        h1 = f"✏️ 编辑 {title_label}"
+        save_label = "保存修改 (会覆盖)"
+        banner = f"""<div class="banner-replace"><strong>编辑模式</strong> — 提交会<strong>覆盖</strong>现有内容. 旧版本自动备份到 <code>reports/.bak/</code>. 想保留旧内容? 改用 <a href="/add/{year}/{week}">➕ 追加</a>.</div>"""
+    else:
+        h1 = f"✍️ 写 {title_label}"
+        save_label = "保存"
+        banner = ""
+
+    def _val_replace(key: str) -> str:
         if not prefill:
             return ""
         items = prefill.get(key) or []
-        return "\n".join(items)
+        return "\\n".join(items)
 
-    work_p = prefill.get("work_files_exist", False) if prefill else False
-    life_p = prefill.get("life_files_exist", False) if prefill else False
+    def _val_append(key: str) -> str:
+        return ""
+
+    if mode == "append":
+        _val = _val_append
+    else:
+        _val = _val_replace
+
+    existing_block = ""
+    if mode == "append" and existing:
+        parts = []
+        if existing.get("work_completed"):
+            parts.append("<h4>💼 本周完成</h4>" + _render_existing_items_html(existing["work_completed"], ""))
+        if existing.get("work_next_week"):
+            parts.append("<h4>💼 下周计划</h4>" + _render_existing_items_html(existing["work_next_week"], ""))
+        if existing.get("work_notes"):
+            parts.append(
+                "<h4>💼 心得</h4>"
+                + _render_existing_items_html(
+                    existing["notes"] if "notes" in existing else existing.get("work_notes", []), ""
+                )
+            )
+        if existing.get("life_completed"):
+            parts.append("<h4>🌿 本周完成</h4>" + _render_existing_items_html(existing["life_completed"], ""))
+        if existing.get("life_notes"):
+            parts.append("<h4>🌿 心得</h4>" + _render_existing_items_html(existing["life_notes"], ""))
+        if parts:
+            existing_block = (
+                """<details class="existing-block" open><summary>📋 现有内容 (不会改)</summary>"""
+                + "".join(parts)
+                + "</details>"
+            )
 
     body = f"""
-<h1>{title_label}</h1>
+<h1>{h1}</h1>
 <p class="muted">{wr.fmt_date_zh(mon)} (周一) ~ {wr.fmt_date_zh(sun)} (周日)</p>
-{('<div class="banner-edit">✏️ 编辑模式 — 表单已从已有数据回填. 直接修改后保存即可.</div>' if is_edit else "")}
-
+{banner}
 {('<div class="error">' + html.escape(error) + "</div>") if error else ""}
 
 <form method="post" action="/new" class="report-form">
   <input type="hidden" name="year" value="{year}">
   <input type="hidden" name="week" value="{week}">
+  <input type="hidden" name="mode" value="{mode}">
+
+  {existing_block}
 
   <fieldset>
-    <legend>💼 工作 {("(已记录)" if work_p else "")}</legend>
-    <label>本周完成 (一行一条)</label>
-    <textarea name="work_completed" rows="5" placeholder="完成了 X 项目的核心功能...">{html.escape(_val("work_completed"))}</textarea>
+    <legend>💼 工作 (新条目, 追加到现有后)</legend>
+    <label>本周完成</label>
+    <textarea name="work_completed" rows="5" placeholder="+ 完成了 X...">{html.escape(_val("work_completed"))}</textarea>
     <label>下周计划</label>
-    <textarea name="work_next_week" rows="3" placeholder="完成 Y 模块, 准备 Z 评审...">{html.escape(_val("work_next_week"))}</textarea>
+    <textarea name="work_next_week" rows="3" placeholder="+ 完成 Y...">{html.escape(_val("work_next_week"))}</textarea>
     <label>心得 / 反思</label>
-    <textarea name="work_notes" rows="2" placeholder="这次踩了个坑: ...">{html.escape(_val("work_notes"))}</textarea>
+    <textarea name="work_notes" rows="2" placeholder="+ 这次踩了...">{html.escape(_val("work_notes"))}</textarea>
   </fieldset>
 
   <fieldset>
-    <legend>🌿 生活 {("(已记录)" if life_p else "")}</legend>
+    <legend>🌿 生活 (新条目)</legend>
     <label>本周完成</label>
-    <textarea name="life_completed" rows="4" placeholder="周末爬山, 跑了 5km...">{html.escape(_val("life_completed"))}</textarea>
+    <textarea name="life_completed" rows="4" placeholder="+ 周末爬山...">{html.escape(_val("life_completed"))}</textarea>
     <label>心得 / 反思</label>
-    <textarea name="life_notes" rows="2" placeholder="...">{html.escape(_val("life_notes"))}</textarea>
+    <textarea name="life_notes" rows="2" placeholder="+ ...">{html.escape(_val("life_notes"))}</textarea>
   </fieldset>
 
   <button type="submit" class="btn primary">{save_label}</button>
@@ -387,14 +457,14 @@ def tpl_new(
 <details class="hint">
   <summary>录入小提示</summary>
   <ul>
-    <li>每个 textarea 里: 一行一条, 留空行不写条目</li>
-    <li>觉得全部空白也行, 保存会跳过空白分类</li>
-    <li><b>编辑模式</b>: 表单已自动回填已有内容, 改完直接保存</li>
-    <li>想从空开始? 清空所有 textarea 再保存</li>
+    <li>每个 textarea 一行一条, 留空跳过</li>
+    <li>空白分类不会清空现有内容</li>
+    <li><b>追加模式</b>: 只在填的字段加新条目, 现有不动</li>
+    <li>想<strong>大改写</strong>? 用 <a href="/edit/{year}/{week}">✏️ 编辑 (替换)</a></li>
   </ul>
 </details>
 """
-    return tpl_base(f"{title_label}", body, active="new", port=_PORT)
+    return tpl_base(f"{h1}", body, active="new", port=_PORT)
 
 
 def tpl_view(year: int, week: int, work_raw: str | None, life_raw: str | None) -> str:
@@ -403,7 +473,8 @@ def tpl_view(year: int, week: int, work_raw: str | None, life_raw: str | None) -
     body_parts.append(f'<p class="muted">{wr.fmt_date_zh(mon)} ~ {wr.fmt_date_zh(sun)}</p>')
     body_parts.append('<div class="action-bar">')
     body_parts.append(f'<a class="btn" href="/combined/{year}/{week}">合并视图</a>')
-    body_parts.append(f'<a class="btn primary" href="/edit/{year}/{week}">✏️ 编辑</a>')
+    body_parts.append(f'<a class="btn primary" href="/add/{year}/{week}">⚕️ 添加新条目</a>')
+    body_parts.append(f'<a class="btn" href="/edit/{year}/{week}">✏️ 编辑 (替换)</a>')
     body_parts.append(f'<a class="btn danger" href="/delete/{year}/{week}">🗑️ 删除</a>')
     body_parts.append("</div>")
 
@@ -560,23 +631,35 @@ class Handler(BaseHTTPRequestHandler):
 
             if path == "/" or path == "/index.html":
                 self._send(200, tpl_index(coverage_stats(), list_all_weeks()))
-            elif path == "/new" or path.startswith("/edit/"):
+            elif path == "/new" or path.startswith("/edit/") or path.startswith("/add/"):
                 today = date.today()
-                # /edit/YEAR/WEEK 也走同一路由
+                # 路由分发:
+                # /new             -> mode=fresh (空白)
+                # /edit/YEAR/WEEK  -> mode=replace (预填, 会覆盖)
+                # /add/YEAR/WEEK   -> mode=append (追加, 不会丢)
                 if path.startswith("/edit/"):
                     m_edit = re.match(r"^/edit/(\d+)/(\d+)/?$", path)
                     if m_edit:
                         year = int(m_edit.group(1))
                         week = int(m_edit.group(2))
+                        mode = "replace"
                     else:
                         self._send(404, "Bad edit URL", "text/plain")
+                        return
+                elif path.startswith("/add/"):
+                    m_add = re.match(r"^/add/(\d+)/(\d+)/?$", path)
+                    if m_add:
+                        year = int(m_add.group(1))
+                        week = int(m_add.group(2))
+                        mode = "append"
+                    else:
+                        self._send(404, "Bad add URL", "text/plain")
                         return
                 else:
                     year = int(qs.get("year", today.year))
                     week = int(qs.get("week", wr.iso_week(today)[1]))
-                # 如果该周已有数据, 预填充
-                prefill = self._build_prefill(year, week)
-                self._send(200, tpl_new(year, week, prefill=prefill))
+                    mode = "fresh"
+                self._render_new_form(year, week, mode=mode)
             elif path == "/list":
                 self._send(200, tpl_list(list_all_weeks()))
             elif path.startswith("/static/"):
@@ -639,6 +722,21 @@ class Handler(BaseHTTPRequestHandler):
 
     # ─── handlers ───
 
+    def _render_new_form(self, year: int, week: int, mode: str) -> None:
+        """Render 新建/编辑/追加 表单.
+
+        - fresh:   空白表单
+        - replace: 预填现有, 提交覆盖
+        - append:  显示现有 + 空白输入, 提交追加
+        """
+        prefill = None
+        existing = None
+        if mode == "replace":
+            prefill = self._build_prefill(year, week)
+        elif mode == "append":
+            existing = self._build_prefill(year, week)
+        self._send(200, tpl_new(year, week, prefill=prefill, existing=existing, mode=mode))
+
     def _build_prefill(self, year: int, week: int) -> dict | None:
         """读已有周报文件, 返回 dict 给表单预填充. 没数据返回 None."""
         work_path, life_path = week_files(year, week)
@@ -671,20 +769,74 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, tpl_new(date.today().year, wr.iso_week(date.today())[1], error="year/week 不合法"))
             return
 
+        mode = data.get("mode", "replace")
+
         def split_lines(s: str) -> list[str]:
             return [ln.strip() for ln in s.splitlines() if ln.strip()]
 
-        r = wr.WeeklyReport(year=year, week=week)
-        r.work.items = split_lines(data.get("work_completed", ""))
-        r.work.next_week = split_lines(data.get("work_next_week", ""))
-        r.work.notes = split_lines(data.get("work_notes", ""))
-        r.life.items = split_lines(data.get("life_completed", ""))
-        r.life.notes = split_lines(data.get("life_notes", ""))
+        # ============ 计算内容根据 mode ============
+        if mode == "append":
+            # Append: 现有 + 新的 (去重, 去陊重)
+            work_existing = self._build_prefill(year, week) or {}
+            life_existing = self._build_prefill(year, week) or {}
+            # 现有 work items (work_existing 有 completed/next_week/notes, 不包含 life)
+            existing_work_items = work_existing.get("work_completed", []) or []
+            existing_work_next = work_existing.get("work_next_week", []) or []
+            existing_work_notes = work_existing.get("work_notes", []) or []
+            existing_life_items = life_existing.get("life_completed", []) or []
+            existing_life_notes = life_existing.get("life_notes", []) or []
+        else:
+            # Replace / fresh: 空分析
+            existing_work_items = []
+            existing_work_next = []
+            existing_work_notes = []
+            existing_life_items = []
+            existing_life_notes = []
 
-        # 保存前备份现有文件 (防误改)
-        work_path, life_path = week_files(year, week)
-        _backup_existing(work_path)
-        _backup_existing(life_path)
+        # 新的有入在 (从表单)
+        new_work_items = split_lines(data.get("work_completed", ""))
+        new_work_next = split_lines(data.get("work_next_week", ""))
+        new_work_notes = split_lines(data.get("work_notes", ""))
+        new_life_items = split_lines(data.get("life_completed", ""))
+        new_life_notes = split_lines(data.get("life_notes", ""))
+
+        # Merge: 现有 + 新 (append 模式) / 新 (replace/fresh 模式)
+        # 去重相同 (case-insensitive)
+        if mode == "append":
+
+            def merge(existing_list: list[str], new_list: list[str]) -> list[str]:
+                seen = {s.strip().lower() for s in existing_list}
+                out = list(existing_list)
+                for n in new_list:
+                    if n.strip().lower() not in seen:
+                        out.append(n)
+                        seen.add(n.strip().lower())
+                return out
+
+            r_work_items = merge(existing_work_items, new_work_items)
+            r_work_next = merge(existing_work_next, new_work_next)
+            r_work_notes = merge(existing_work_notes, new_work_notes)
+            r_life_items = merge(existing_life_items, new_life_items)
+            r_life_notes = merge(existing_life_notes, new_life_notes)
+        else:
+            r_work_items = new_work_items
+            r_work_next = new_work_next
+            r_work_notes = new_work_notes
+            r_life_items = new_life_items
+            r_life_notes = new_life_notes
+
+        r = wr.WeeklyReport(year=year, week=week)
+        r.work.items = r_work_items
+        r.work.next_week = r_work_next
+        r.work.notes = r_work_notes
+        r.life.items = r_life_items
+        r.life.notes = r_life_notes
+
+        # 保存前备份 (replace/append 模式都备; fresh 不备)
+        if mode != "fresh":
+            work_path, life_path = week_files(year, week)
+            _backup_existing(work_path)
+            _backup_existing(life_path)
 
         saved = []
         if r.work.items or r.work.next_week or r.work.notes:
