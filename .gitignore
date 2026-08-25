@@ -16,3 +16,6 @@ venv/
 .idea/
 .vscode/
 *.swp
+# Edit backups (本地, 不入库)
+reports/.bak/
+reports/**/.gh-sync.json

@@ -125,21 +125,31 @@ if __name__ == "__main__":
 
 
 class TestStreak(unittest.TestCase):
-    """测试 compute_streak (连续写周报的周数)."""
+    """测试 compute_streak (连续写周报的周数).
+
+    数据假设 (2026-08-25 时):
+    - W25-W28: 删了 (用户的 demo, 见 chore commit)
+    - W29-W31: 用户真实数据
+    - W32+ : 没数据
+    """
 
     def test_streak_with_real_data(self):
-        """用真实 reports/ 数据 (W25-W31 都有) → streak = 7."""
+        """today=W30 (Mon 2026-07-26): 倒数 W30 有, W29 有, W28 删了 (break)
+        → streak = 2.
+        """
         from datetime import date
 
         streak = wr.compute_streak(date(2026, 7, 26))
-        self.assertEqual(streak, 6, f"expected 6, got {streak}")
+        self.assertEqual(streak, 2, f"expected 2, got {streak}")
 
     def test_streak_current_week_empty(self):
-        """当前 W34 没数据, 跳过找 W25-W30 的连续段 → 6."""
+        """today=W34 (Sun 2026-08-23): W34 空, W33/W32 空, W31 有, W30 有, W29 有
+        → streak = 3.
+        """
         from datetime import date
 
         streak = wr.compute_streak(date(2026, 8, 23))
-        self.assertEqual(streak, 7)
+        self.assertEqual(streak, 3, f"expected 3, got {streak}")
 
     def test_streak_no_data(self):
         """完全没数据 → 0."""

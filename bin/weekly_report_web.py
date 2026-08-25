@@ -188,6 +188,32 @@ def week_files(year: int, week: int) -> tuple[Path | None, Path | None]:
     return (work if work.exists() else None, life if life.exists() else None)
 
 
+# 编辑前自动备份: 旧文件存到 .bak/, 防误改丢数据
+BAK_DIR = wr.REPORTS_DIR / ".bak"
+MAX_BACKUPS_PER_FILE = 10  # 每个文件最多保留 10 个备份
+
+
+def _backup_existing(path: Path | None) -> None:
+    """保存前把现有文件备份到 .bak/. 每个文件最多保留 10 个.
+
+    文件名格式: {原文件名}-{时间戳}.md.bak
+    例如: 2026-W30-work-20260825-1042.md.bak
+    """
+    if not path or not path.exists():
+        return
+    import shutil as _shutil
+    from datetime import datetime as _dt
+
+    BAK_DIR.mkdir(parents=True, exist_ok=True)
+    ts = _dt.now().strftime("%Y%m%d-%H%M%S")
+    bak_path = BAK_DIR / f"{path.stem}-{ts}.md.bak"
+    _shutil.copy2(path, bak_path)
+    # 清理老的, 只留最近 MAX_BACKUPS_PER_FILE 个
+    backups = sorted(BAK_DIR.glob(f"{path.stem}-*.md.bak"), reverse=True)
+    for old in backups[MAX_BACKUPS_PER_FILE:]:
+        old.unlink()
+
+
 # ──────────── 模板 (f-string) ────────────
 
 
@@ -654,6 +680,11 @@ class Handler(BaseHTTPRequestHandler):
         r.work.notes = split_lines(data.get("work_notes", ""))
         r.life.items = split_lines(data.get("life_completed", ""))
         r.life.notes = split_lines(data.get("life_notes", ""))
+
+        # 保存前备份现有文件 (防误改)
+        work_path, life_path = week_files(year, week)
+        _backup_existing(work_path)
+        _backup_existing(life_path)
 
         saved = []
         if r.work.items or r.work.next_week or r.work.notes:
